@@ -1,0 +1,54 @@
+@import url('https://fonts.googleapis.com/css2?family=Crimson+Text:wght@400;600;700&family=Libre+Baskerville:wght@400;700&display=swap');
+
+:root {
+  font-family: 'Crimson Text', 'Libre Baskerville', serif;
+  line-height: 1.5;
+  font-weight: 400;
+  color: #121212;
+  background-color: #f4f3ef;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  --page: #f4f3ef;
+  --panel: #faf9f7;
+  --card: #ffffff;
+  --ink: #121212;
+  --muted: #5a5a5a;
+  --border: #c9c9c9;
+  --accent: #111111;
+  --accent-light: #2a2a2a;
+  --shadow: rgba(0, 0, 0, 0.08);
+  --danger: #b44532;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: var(--page);
+  color: var(--ink);
+  background-image: linear-gradient(180deg, rgba(255,255,255,0.65), rgba(255,255,255,0.65)),
+    url('data:image/svg+xml,%3Csvg width="170" height="170" viewBox="0 0 170 170" xmlns="http://www.w3.org/2000/svg"%3E%3Cpath d="M0 169h170" stroke="%23d5d5d5" stroke-width="1"/%3E%3C/svg%3E');
+  background-size: cover, 100% 48px;
+}
+
+#root {
+  min-height: 100vh;
+}
+
+a {
+  color: inherit;
+}
+
+button,
+input,
+textarea {
+  font: inherit;
+}
+
+textarea {
+  resize: vertical;
+}
