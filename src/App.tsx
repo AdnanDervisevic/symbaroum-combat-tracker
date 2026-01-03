@@ -7,21 +7,18 @@ import { usePersistentState } from "./hooks/usePersistentState";
 import { buildDefaultCharacters } from "./data/defaultCharacters";
 import type { Character, Combatant, EncounterState, CharacterAttributes, AttributeKey } from "./types";
 import { clamp, uid } from "./utils";
+import { exportToFile, importFromFile } from "./utils/exportImport";
+import {
+  normalizeAttributes,
+  syncMemberFromPc,
+  buildNewCharacter,
+  characterToCombatant,
+} from "./utils/combatLogic";
+import { CharactersPanel, EncounterPanel, HelpPanel, AddCombatantModal } from "./components";
+import type { NpcDraft } from "./components";
 
-// TODO: surface Symbaroum-specific presets for common NPC stat blocks
 const TAB_OPTIONS = ["characters", "encounter", "help"] as const;
 type TabKey = (typeof TAB_OPTIONS)[number];
-
-type NpcDraft = {
-  name: string;
-  initiative: number;
-  toughness: number;
-  defense: number;
-  armor: string;
-  painThreshold: number | null;
-  note: string;
-  attributes?: CharacterAttributes | null;
-};
 
 type PainFlash = {
   name: string;
@@ -91,6 +88,50 @@ function App() {
     setCharacters((prev) => [...prev, buildNewCharacter()]);
   }
 
+  function handleExport() {
+    exportToFile(characters, encounter);
+    toast.success("Data exported", { position: "bottom-right", autoClose: 2000 });
+  }
+
+  async function handleImport() {
+    const result = await importFromFile();
+    if (!result.success) {
+      if (result.error !== "Import cancelled") {
+        toast.error(result.error, { position: "bottom-right" });
+      }
+      return;
+    }
+    if (!window.confirm("This will replace all current data. Continue?")) return;
+    setCharacters(result.data.characters);
+    setEncounter(result.data.encounter);
+    toast.success("Data imported", { position: "bottom-right", autoClose: 2000 });
+  }
+
+  function handleCharacterAttributeChange(id: string, key: AttributeKey, value: string) {
+    const numeric = value.trim() === '' ? null : Number(value);
+    setCharacters((prev) =>
+      prev.map((character) => {
+        if (character.id !== id) return character;
+        const next: CharacterAttributes = { ...(character.attributes ?? {}) };
+        if (numeric === null || Number.isNaN(numeric)) {
+          delete next[key];
+        } else {
+          next[key] = numeric;
+        }
+        return { ...character, attributes: normalizeAttributes(next) };
+      })
+    );
+  }
+
+  function openBuilder() {
+    // Pre-select all PCs that aren't already in the encounter
+    const availablePcIds = characters
+      .filter((pc) => !encounter.members.some((m) => m.refId === pc.id))
+      .map((pc) => pc.id);
+    setSelectedPcIds(availablePcIds);
+    setBuilderOpen(true);
+  }
+
   function togglePcSelection(id: string) {
     setSelectedPcIds((prev) =>
       prev.includes(id) ? prev.filter((pcId) => pcId !== id) : [...prev, id]
@@ -112,22 +153,6 @@ function App() {
 
   function handleNpcDraftChange<K extends keyof NpcDraft>(field: K, value: NpcDraft[K]) {
     setNpcDraft((prev) => ({ ...prev, [field]: value }));
-  }
-
-  function handleCharacterAttributeChange(id: string, key: AttributeKey, value: string) {
-    const numeric = value.trim() === '' ? null : Number(value);
-    setCharacters((prev) =>
-      prev.map((character) => {
-        if (character.id !== id) return character;
-        const next: CharacterAttributes = { ...(character.attributes ?? {}) };
-        if (numeric === null || Number.isNaN(numeric)) {
-          delete next[key];
-        } else {
-          next[key] = numeric;
-        }
-        return { ...character, attributes: normalizeAttributes(next) };
-      })
-    );
   }
 
   function addNpc(ev: FormEvent) {
@@ -163,13 +188,16 @@ function App() {
 
   function removeMember(id: string) {
     setEncounter((prev) => {
+      const activeId = prev.members[prev.turnIndex]?.id;
       const members = prev.members.filter((m) => m.id !== id);
       let { turnIndex, round } = prev;
       if (!members.length) {
         turnIndex = 0;
         round = 1;
-      } else if (turnIndex >= members.length) {
-        turnIndex = Math.max(0, members.length - 1);
+      } else if (activeId === id) {
+        turnIndex = Math.min(turnIndex, members.length - 1);
+      } else {
+        turnIndex = Math.max(0, members.findIndex((m) => m.id === activeId));
       }
       return { ...prev, members, turnIndex, round };
     });
@@ -238,7 +266,7 @@ function App() {
   }
 
   function applyAdjustment(memberId: string, mode: "hurt" | "heal") {
-    const amount = Math.max(0, Math.min(99, damageInputs[memberId] ?? 1));
+    const amount = Math.max(0, Math.min(999, damageInputs[memberId] ?? 1));
     if (amount === 0) return;
     const triggerRef: { current: PainFlashTrigger | null } = { current: null };
     setEncounter((prev) => ({
@@ -254,13 +282,14 @@ function App() {
             updated.prone = true;
             triggerRef.current = { name: member.name, amount };
           }
+        } else if (mode === "heal" && member.prone) {
+          updated.prone = false;
         }
         return updated;
       }),
     }));
     if (triggerRef.current) {
       const payload = { ...triggerRef.current };
-      // Defer to ensure DOM updates for encounter apply first
       window.setTimeout(() => {
         setPainFlash({ ...payload, id: Date.now() });
       }, 0);
@@ -301,9 +330,6 @@ function App() {
     });
   }, [characters]);
 
-  const roundInfo = encounter.members.length
-    ? "Round " + encounter.round + " — Active: " + (activeMember?.name ?? "-")
-    : "No combatants yet.";
   return (
     <div className="app-shell">
       <main>
@@ -319,455 +345,57 @@ function App() {
               {tab === "help" && "Help"}
             </button>
           ))}
+          <button className="theme-toggle" onClick={toggleTheme} title="Toggle theme">
+            {theme === "light" ? "\u263E" : "\u2600"}
+          </button>
         </nav>
 
         {activeTab === "characters" && (
-          <section className="panel">
-            <div className="panel-header">
-              <h2>Player Characters</h2>
-              <button onClick={addCharacter}>Add Character</button>
-            </div>
-            <p className="muted small">Roster lives in your browser (localStorage).</p>
-            <div className="cards two-col">
-              {characters.map((character) => (
-                <div className="card character-card" key={character.id}>
-                  <div className="card-line dual">
-                    <input
-                      className="name"
-                      value={character.name}
-                      onChange={(e) => updateCharacter(character.id, { name: e.target.value })}
-                      placeholder="Name"
-                    />
-                    <input
-                      className="role"
-                      value={character.role}
-                      onChange={(e) => updateCharacter(character.id, { role: e.target.value })}
-                      placeholder="Role"
-                    />
-                  </div>
-                  <div className="grid stats">
-                    <label>
-                      <span>Initiative</span>
-                      <input
-                        type="number"
-                        value={character.initiative}
-                        onChange={(e) =>
-                          updateCharacter(character.id, {
-                            initiative: Number(e.target.value) || 0,
-                          })
-                        }
-                      />
-                    </label>
-                    <label>
-                      <span>Toughness</span>
-                      <input
-                        type="number"
-                        value={character.toughness}
-                        onChange={(e) =>
-                          updateCharacter(character.id, {
-                            toughness: clamp(Number(e.target.value) || 0, 0, 999),
-                          })
-                        }
-                      />
-                    </label>
-                    <label>
-                      <span>Defense</span>
-                      <input
-                        type="number"
-                        value={character.defense}
-                        onChange={(e) =>
-                          updateCharacter(character.id, {
-                            defense: Number(e.target.value) || 0,
-                          })
-                        }
-                      />
-                    </label>
-                    <label>
-                      <span>Armor</span>
-                      <input
-                        value={character.armor}
-                        onChange={(e) => updateCharacter(character.id, { armor: e.target.value })}
-                      />
-                    </label>
-                    <label>
-                      <span>Pain Threshold</span>
-                      <input
-                        type="number"
-                        value={character.painThreshold ?? ""}
-                        onChange={(e) =>
-                          updateCharacter(character.id, {
-                            painThreshold:
-                              e.target.value === ""
-                                ? null
-                                : Math.max(0, Number(e.target.value) || 0),
-                          })
-                        }
-                      />
-                    </label>
-                  </div>
-                  <details className="attributes-editor" open={hasAttributes(character.attributes)}>
-                    <summary>Attributes (optional)</summary>
-                    <div className="attributes-grid">
-                      {ATTRIBUTE_FIELDS.map(({ key, label }) => (
-                        <label key={key}>
-                          <span>{label}</span>
-                          <input
-                            type="number"
-                            value={character.attributes?.[key] ?? ''}
-                            onChange={(e) =>
-                              handleCharacterAttributeChange(character.id, key, e.target.value)
-                            }
-                          />
-                        </label>
-                      ))}
-                    </div>
-                  </details>
-                  <textarea
-                    value={character.note}
-                    onChange={(e) => updateCharacter(character.id, { note: e.target.value })}
-                    placeholder="Notes"
-                  />
-                  <div className="card-actions">
-                    <button className="danger ghost" onClick={() => deleteCharacter(character.id)}>
-                      Delete
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </section>
+          <CharactersPanel
+            characters={characters}
+            onUpdate={updateCharacter}
+            onDelete={deleteCharacter}
+            onAdd={addCharacter}
+            onAttributeChange={handleCharacterAttributeChange}
+            onExport={handleExport}
+            onImport={handleImport}
+          />
         )}
 
         {activeTab === "encounter" && (
-          <section className="panel">
-            <div className="panel-header">
-              <h2>Initiative Order</h2>
-              <div className="panel-actions wrap">
-                <button onClick={() => setBuilderOpen(true)}>Manage Combatants</button>
-                <button onClick={sortByInitiative}>Sort</button>
-                <button onClick={prevTurn}>Prev</button>
-                <button onClick={nextTurn}>Next</button>
-              </div>
-            </div>
-            <p className="muted small">{roundInfo}</p>
-            <div className="cards encounter-grid">
-              {!encounter.members.length && (
-                <p className="muted">Add PCs or NPCs from the Manage dialog.</p>
-              )}
-              {encounter.members.map((member, idx) => {
-                const adjustValue = damageInputs[member.id] ?? 1;
-                const isEditing = !!editingIds[member.id];
-                return (
-                  <div
-                    key={member.id}
-                    className={
-                      "card encounter-card" + (idx === encounter.turnIndex ? " active" : "")
-                    }
-                  >
-                    <div className="card-line compact-header">
-                      <div className="name-wrapper">
-                        <input
-                          className="name"
-                          value={member.name}
-                          readOnly={!isEditing}
-                          aria-readonly={!isEditing}
-                          onChange={(e) => updateMember(member.id, { name: e.target.value })}
-                        />
-                      </div>
-                      <div className="order-buttons">
-                        <button className="icon" onClick={() => moveMember(member.id, "up")}>
-                          ↑
-                        </button>
-                        <button className="icon" onClick={() => moveMember(member.id, "down")}>
-                          ↓
-                        </button>
-                      </div>
-                    </div>
-                    <div className="stat-block">
-                      <div className="stat-row single-line">
-                        <label className="stat-field">
-                          <span>Init</span>
-                          <input
-                            type="number"
-                            value={member.initiative}
-                            readOnly={!isEditing}
-                            aria-readonly={!isEditing}
-                            onChange={(e) =>
-                              updateMember(member.id, {
-                                initiative: Number(e.target.value) || 0,
-                              })
-                            }
-                          />
-                        </label>
-                        <label className="stat-field">
-                          <span>Tough</span>
-                          <input
-                            type="number"
-                            value={member.toughness}
-                            readOnly={!isEditing}
-                            aria-readonly={!isEditing}
-                            onChange={(e) =>
-                              updateMember(member.id, {
-                                toughness: clamp(Number(e.target.value) || 0, 0, 999),
-                              })
-                            }
-                          />
-                        </label>
-                        <label className="stat-field">
-                          <span>Def</span>
-                          <input
-                            type="number"
-                            value={member.defense}
-                            readOnly={!isEditing}
-                            aria-readonly={!isEditing}
-                            onChange={(e) =>
-                              updateMember(member.id, {
-                                defense: Number(e.target.value) || 0,
-                              })
-                            }
-                          />
-                        </label>
-                        <label className="stat-field">
-                          <span>Armor</span>
-                          <input
-                            value={member.armor}
-                            readOnly={!isEditing}
-                            aria-readonly={!isEditing}
-                            onChange={(e) => updateMember(member.id, { armor: e.target.value })}
-                          />
-                        </label>
-                        <label className="stat-field">
-                          <span>Pain Th.</span>
-                          <input
-                            type="number"
-                            value={member.painThreshold ?? ""}
-                            readOnly={!isEditing}
-                            aria-readonly={!isEditing}
-                            onChange={(e) =>
-                              updateMember(member.id, {
-                                painThreshold:
-                                  e.target.value === ""
-                                    ? null
-                                    : Math.max(0, Number(e.target.value) || 0),
-                              })
-                            }
-                          />
-                        </label>
-                      </div>
-                    </div>
-                    {hasAttributes(member.attributes) && (
-                      <div className="attr-row">
-                        {ATTRIBUTE_FIELDS.filter(({ key }) => {
-                          const v = member.attributes?.[key];
-                          return typeof v === 'number' && Number.isFinite(v);
-                        }).map(({ key, label }) => {
-                          const v = member.attributes?.[key] as number;
-                          return (
-                            <div key={key} className="attr-cell" data-attr={key}>
-                              <span>{label}</span>
-                              <strong>{v}</strong>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    )}
-                    <div className="status-row">
-                      <label className="toggle">
-                        <input
-                          type="checkbox"
-                          checked={member.prone}
-                          onChange={(e) => updateMember(member.id, { prone: e.target.checked })}
-                        />
-                        Prone
-                      </label>
-                      <label className="toggle">
-                        <input
-                          type="checkbox"
-                          checked={member.flanked}
-                          onChange={(e) => updateMember(member.id, { flanked: e.target.checked })}
-                        />
-                        Flanked
-                      </label>
-                    </div>
-                    <div className="adjust-row inline">
-                      <label className="amount-inline">
-                        <span>Amount</span>
-                        <input
-                          type="number"
-                          min={0}
-                          max={99}
-                          value={adjustValue}
-                          onChange={(e) =>
-                            handleAdjustInput(
-                              member.id,
-                              Math.max(0, Math.min(99, Number(e.target.value) || 0))
-                            )
-                          }
-                        />
-                      </label>
-                      <div className="adjust-buttons">
-                        <button onClick={() => applyAdjustment(member.id, "heal")}>Heal</button>
-                        <button onClick={() => applyAdjustment(member.id, "hurt")}>Hurt</button>
-                      </div>
-                    </div>
-                    <textarea
-                      value={member.note || ""}
-                      onChange={(e) => updateMember(member.id, { note: e.target.value })}
-                      placeholder="Notes / conditions"
-                    />
-                    <div className="card-actions">
-                      <button className="ghost" onClick={() => toggleEditing(member.id)}>
-                        {isEditing ? "Done" : "Edit"}
-                      </button>
-                      <button className="danger ghost" onClick={() => removeMember(member.id)}>
-                        Remove
-                      </button>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </section>
+          <EncounterPanel
+            encounter={encounter}
+            damageInputs={damageInputs}
+            editingIds={editingIds}
+            onOpenBuilder={openBuilder}
+            onSort={sortByInitiative}
+            onPrevTurn={prevTurn}
+            onNextTurn={nextTurn}
+            onUpdateMember={updateMember}
+            onRemoveMember={removeMember}
+            onMoveMember={moveMember}
+            onToggleEditing={toggleEditing}
+            onAdjustInput={handleAdjustInput}
+            onApplyAdjustment={applyAdjustment}
+          />
         )}
 
-        {activeTab === "help" && (
-          <section className="panel">
-            <h2>Quick Help</h2>
-            <ul>
-              <li>Characters tab stores your standard PCs (localStorage).</li>
-              <li>Encounter tab pulls PCs in, builds NPCs, and tracks initiative.</li>
-              <li>Pain Threshold triggers auto-prone + warnings; amount input catches big hits.</li>
-              <li>Edit per card when you need to tweak stats mid-session.</li>
-            </ul>
-            <p className="muted small">
-              Rules reference: Symbaroum core book. Tracker simply records what you enter.
-            </p>
-          </section>
-        )}
+        {activeTab === "help" && <HelpPanel />}
       </main>
-      {isBuilderOpen && (
-        <div className="modal-overlay" role="dialog" aria-modal="true">
-          <div className="modal">
-            <div className="modal-header">
-              <h3>Manage Combatants</h3>
-              <button className="icon" aria-label="Close" onClick={() => setBuilderOpen(false)}>
-                ×
-              </button>
-            </div>
-            <div className="modal-body">
-              <section className="modal-section">
-                <h4>Player Characters</h4>
-                <div className="pc-picker">
-                  {characters.length === 0 && (
-                    <p className="muted">Add characters in the Characters tab first.</p>
-                  )}
-                  {characters.map((pc) => {
-                    const disabled = encounter.members.some(
-                      (m) => m.source === "pc" && m.refId === pc.id
-                    );
-                    const checked = selectedPcIds.includes(pc.id);
-                    return (
-                      <label key={pc.id} className={"pc-option" + (disabled ? " disabled" : "")}>
-                        <input
-                          type="checkbox"
-                          disabled={disabled}
-                          checked={checked}
-                          onChange={() => togglePcSelection(pc.id)}
-                        />
-                        <div>
-                          <strong>{pc.name}</strong>
-                          <span className="muted">{pc.role || "PC"}</span>
-                          <small className="muted">
-                            Initiative {pc.initiative} • Toughness {pc.toughness}
-                          </small>
-                        </div>
-                      </label>
-                    );
-                  })}
-                </div>
-                <div className="modal-actions">
-                  <button onClick={addSelectedPcs} disabled={!selectedPcIds.length}>
-                    Add Selected PCs
-                  </button>
-                  <button className="danger ghost" onClick={clearEncounter}>
-                    Clear Encounter
-                  </button>
-                </div>
-              </section>
 
-              <section className="modal-section">
-                <h4>Quick NPC</h4>
-                <form className="inline-form labeled" onSubmit={addNpc}>
-                  <label>
-                    <span>Name</span>
-                    <input
-                      value={npcDraft.name}
-                      onChange={(e) => handleNpcDraftChange("name", e.target.value)}
-                      required
-                    />
-                  </label>
-                  <label>
-                    <span>Initiative</span>
-                    <input
-                      type="number"
-                      value={npcDraft.initiative}
-                      onChange={(e) => handleNpcDraftChange("initiative", Number(e.target.value) || 0)}
-                      required
-                    />
-                  </label>
-                  <label>
-                    <span>Toughness</span>
-                    <input
-                      type="number"
-                      value={npcDraft.toughness}
-                      onChange={(e) => handleNpcDraftChange("toughness", Number(e.target.value) || 0)}
-                      required
-                    />
-                  </label>
-                  <label>
-                    <span>Defense</span>
-                    <input
-                      type="number"
-                      value={npcDraft.defense}
-                      onChange={(e) => handleNpcDraftChange("defense", Number(e.target.value) || 0)}
-                      required
-                    />
-                  </label>
-                  <label>
-                    <span>Armor</span>
-                    <input
-                      value={npcDraft.armor}
-                      onChange={(e) => handleNpcDraftChange("armor", e.target.value)}
-                    />
-                  </label>
-                  <label>
-                    <span>Pain Threshold</span>
-                    <input
-                      type="number"
-                      value={npcDraft.painThreshold ?? ""}
-                      onChange={(e) =>
-                        handleNpcDraftChange(
-                          "painThreshold",
-                          e.target.value === ""
-                            ? null
-                            : Math.max(0, Number(e.target.value) || 0)
-                        )
-                      }
-                    />
-                  </label>
-                  <label className="wide">
-                    <span>Notes</span>
-                    <input
-                      value={npcDraft.note}
-                      onChange={(e) => handleNpcDraftChange("note", e.target.value)}
-                    />
-                  </label>
-                  <button type="submit">Add NPC</button>
-                </form>
-              </section>
-            </div>
-          </div>
-        </div>
+      {isBuilderOpen && (
+        <AddCombatantModal
+          characters={characters}
+          encounter={encounter}
+          selectedPcIds={selectedPcIds}
+          npcDraft={npcDraft}
+          onClose={() => setBuilderOpen(false)}
+          onTogglePcSelection={togglePcSelection}
+          onAddSelectedPcs={addSelectedPcs}
+          onClearEncounter={clearEncounter}
+          onNpcDraftChange={handleNpcDraftChange}
+          onAddNpc={addNpc}
+        />
       )}
 
       {painFlash && (

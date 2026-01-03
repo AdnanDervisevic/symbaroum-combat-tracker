@@ -1,10 +1,9 @@
 import type { Character } from '../types'
-import { uid } from '../utils'
 
 export function buildDefaultCharacters(): Character[] {
   return [
     {
-      id: uid('pc'),
+      id: 'pc_default_cassimei',
       name: 'Cassimei',
       role: 'Bard',
       initiative: 0,
@@ -16,7 +15,7 @@ export function buildDefaultCharacters(): Character[] {
       note: 'Charming storyteller'
     },
     {
-      id: uid('pc'),
+      id: 'pc_default_thalia',
       name: 'Thalia',
       role: 'Wizard',
       initiative: 0,
@@ -28,7 +27,7 @@ export function buildDefaultCharacters(): Character[] {
       note: 'Mystic scholar'
     },
     {
-      id: uid('pc'),
+      id: 'pc_default_vigoi',
       name: 'Vigoi',
       role: 'Warrior',
       initiative: 0,
@@ -40,7 +39,7 @@ export function buildDefaultCharacters(): Character[] {
       note: 'Placeholder stats'
     },
     {
-      id: uid('pc'),
+      id: 'pc_default_ymma',
       name: 'Ymma',
       role: 'Goblin',
       initiative: 0,
