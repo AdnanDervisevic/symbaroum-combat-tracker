@@ -1,11 +1,14 @@
-import { useEffect, useState } from "react";
-import type { FormEvent } from "react";
+import { useEffect, useRef, useState } from "react";
+import type { FormEvent as ReactFormEvent } from "react";
+
+type FormEvent = ReactFormEvent<HTMLFormElement>;
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import "./App.css";
 import { usePersistentState } from "./hooks/usePersistentState";
+import { usePersistentHistory } from "./hooks/usePersistentHistory";
 import { buildDefaultCharacters } from "./data/defaultCharacters";
-import type { Character, Combatant, EncounterState, CharacterAttributes, AttributeKey } from "./types";
+import type { Character, Combatant, EncounterState, EncounterHistoryEntry, CharacterAttributes, AttributeKey } from "./types";
 import { clamp, uid } from "./utils";
 import { exportToFile, importFromFile } from "./utils/exportImport";
 import {
@@ -23,7 +26,7 @@ type TabKey = (typeof TAB_OPTIONS)[number];
 type PainFlash = {
   name: string;
   amount: number;
-  id: number;
+  id: string;
 };
 
 type PainFlashTrigger = Omit<PainFlash, "id">;
@@ -51,7 +54,7 @@ function App() {
     "sct.characters",
     () => buildDefaultCharacters()
   );
-  const [encounter, setEncounter] = usePersistentState<EncounterState>(
+  const [encounter, setEncounter, { undo, redo, canUndo, canRedo }] = usePersistentHistory<EncounterState>(
     "sct.encounter",
     defaultEncounterState
   );
@@ -62,10 +65,30 @@ function App() {
   const [painFlash, setPainFlash] = useState<PainFlash | null>(null);
   const [editingIds, setEditingIds] = useState<Record<string, boolean>>({});
   const [theme, setTheme] = usePersistentState<"light" | "dark">("sct.theme", () => "light");
+  const [encounterHistory, setEncounterHistory] = usePersistentState<EncounterHistoryEntry[]>(
+    "sct.encounterHistory",
+    () => []
+  );
+
+  const MAX_HISTORY_ENTRIES = 10;
 
   useEffect(() => {
     document.documentElement.dataset.theme = theme;
   }, [theme]);
+
+  // Round change detection for recap
+  const prevRoundRef = useRef(encounter.round);
+  useEffect(() => {
+    if (encounter.round > prevRoundRef.current && encounter.members.length > 0) {
+      const standing = encounter.members.filter((m) => m.toughness > 0).length;
+      const down = encounter.members.length - standing;
+      const summary = down > 0
+        ? `Round ${prevRoundRef.current} complete — ${standing} standing, ${down} down`
+        : `Round ${prevRoundRef.current} complete — All ${standing} combatants standing`;
+      toast.info(summary, { position: "bottom-right", autoClose: 3000 });
+    }
+    prevRoundRef.current = encounter.round;
+  }, [encounter.round, encounter.members]);
 
   function toggleTheme() {
     setTheme((prev) => (prev === "light" ? "dark" : "light"));
@@ -255,10 +278,34 @@ function App() {
 
   function clearEncounter() {
     if (!window.confirm("Clear encounter?")) return;
+    // Save to history if there were members
+    if (encounter.members.length > 0) {
+      const pcs = encounter.members.filter((m) => m.source === "pc").length;
+      const npcs = encounter.members.filter((m) => m.source === "npc").length;
+      const label = `Round ${encounter.round} — ${pcs} PC${pcs !== 1 ? "s" : ""}, ${npcs} NPC${npcs !== 1 ? "s" : ""}`;
+      const entry: EncounterHistoryEntry = {
+        id: uid("hist"),
+        timestamp: Date.now(),
+        label,
+        encounter: { ...encounter },
+      };
+      setEncounterHistory((prev) => [entry, ...prev].slice(0, MAX_HISTORY_ENTRIES));
+    }
     setEncounter(defaultEncounterState());
     setSelectedPcIds([]);
     setDamageInputs({});
     setEditingIds({});
+  }
+
+  function restoreEncounter(entry: EncounterHistoryEntry) {
+    if (!window.confirm("Restore this encounter? Current encounter will be cleared.")) return;
+    setEncounter(entry.encounter);
+    setBuilderOpen(false);
+    toast.success("Encounter restored", { position: "bottom-right", autoClose: 2000 });
+  }
+
+  function deleteHistoryEntry(id: string) {
+    setEncounterHistory((prev) => prev.filter((e) => e.id !== id));
   }
 
   function handleAdjustInput(memberId: string, value: number) {
@@ -290,8 +337,9 @@ function App() {
     }));
     if (triggerRef.current) {
       const payload = { ...triggerRef.current };
+      const flashId = uid("flash");
       window.setTimeout(() => {
-        setPainFlash({ ...payload, id: Date.now() });
+        setPainFlash({ ...payload, id: flashId });
       }, 0);
       toast.warning(
         triggerRef.current.name +
@@ -328,7 +376,7 @@ function App() {
       });
       return changed ? { ...prev, members } : prev;
     });
-  }, [characters]);
+  }, [characters, setEncounter]);
 
   return (
     <div className="app-shell">
@@ -367,10 +415,14 @@ function App() {
             encounter={encounter}
             damageInputs={damageInputs}
             editingIds={editingIds}
+            canUndo={canUndo}
+            canRedo={canRedo}
             onOpenBuilder={openBuilder}
             onSort={sortByInitiative}
             onPrevTurn={prevTurn}
             onNextTurn={nextTurn}
+            onUndo={undo}
+            onRedo={redo}
             onUpdateMember={updateMember}
             onRemoveMember={removeMember}
             onMoveMember={moveMember}
@@ -389,12 +441,15 @@ function App() {
           encounter={encounter}
           selectedPcIds={selectedPcIds}
           npcDraft={npcDraft}
+          encounterHistory={encounterHistory}
           onClose={() => setBuilderOpen(false)}
           onTogglePcSelection={togglePcSelection}
           onAddSelectedPcs={addSelectedPcs}
           onClearEncounter={clearEncounter}
           onNpcDraftChange={handleNpcDraftChange}
           onAddNpc={addNpc}
+          onRestoreEncounter={restoreEncounter}
+          onDeleteHistoryEntry={deleteHistoryEntry}
         />
       )}
 

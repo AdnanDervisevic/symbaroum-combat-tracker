@@ -53,3 +53,10 @@ export type ExportPayload = {
   characters: Character[]
   encounter: EncounterState
 }
+
+export type EncounterHistoryEntry = {
+  id: string
+  timestamp: number
+  label: string
+  encounter: EncounterState
+}

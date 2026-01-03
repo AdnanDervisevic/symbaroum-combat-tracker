@@ -56,5 +56,3 @@ export function usePersistentState<T>(key: string, initializer: () => T) {
 
   return [state, setState] as const
 }
-
-export { STORAGE_VERSION }

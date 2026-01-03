@@ -1,16 +1,6 @@
 import type { Character, CharacterAttributes, AttributeKey } from '../../types';
 import { clamp } from '../../utils';
-
-const ATTRIBUTE_FIELDS = [
-  { key: 'acc', label: 'ACC' },
-  { key: 'cun', label: 'CUN' },
-  { key: 'dis', label: 'DIS' },
-  { key: 'per', label: 'PER' },
-  { key: 'qui', label: 'QUI' },
-  { key: 'res', label: 'RES' },
-  { key: 'str', label: 'STR' },
-  { key: 'vig', label: 'VIG' },
-] as const satisfies ReadonlyArray<{ key: AttributeKey; label: string }>;
+import { ATTRIBUTE_FIELDS } from '../../utils/combatLogic';
 
 const hasAttributes = (attrs?: CharacterAttributes | null) =>
   !!attrs && ATTRIBUTE_FIELDS.some(({ key }) => attrs[key] !== null && attrs[key] !== undefined);

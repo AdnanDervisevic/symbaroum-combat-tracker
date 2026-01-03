@@ -2,7 +2,7 @@ import type { Character, EncounterState, ExportPayload } from '../types';
 
 const CURRENT_VERSION = 1;
 
-export function createExportPayload(
+function createExportPayload(
   characters: Character[],
   encounter: EncounterState
 ): ExportPayload {

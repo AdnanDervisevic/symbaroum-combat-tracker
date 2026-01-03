@@ -7,8 +7,8 @@
 | Critical (1) | 4 | 4 | 0 | 0 |
 | High (2) | 3 | 3 | 0 | 0 |
 | Medium (3) | 2 | 2 | 0 | 0 |
-| Nice to Have (4) | 5 | 1 | 0 | 4 |
-| **TOTAL** | **14** | **10** | **0** | **4** |
+| Nice to Have (4) | 5 | 5 | 0 | 0 |
+| **TOTAL** | **14** | **14** | **0** | **0** |
 
 ### Status Key
 - `[ ]` Not started
@@ -20,12 +20,16 @@
 
 ## Currently Working On
 
-_Tiers 1-3 complete! Only Tier 4 (Nice to Have) remaining._
+_All tasks complete!_
 
 ---
 
 ## Recently Completed
 
+- **Persistent encounter history** (save/restore past encounters from Manage modal)
+- **Encounter difficulty calculator** (PC vs NPC stat comparison with rating)
+- **Combat round recap** (toast notification on round transition)
+- **Undo/redo system** (usePersistentHistory hook, EncounterPanel buttons)
 - **Dark mode refinements** (theme toggle, button colors, remove delete on defaults, remove localStorage text)
 - **#9** Add localStorage Versioning
 - **#8** Fix Damage Input Max Limit
@@ -120,10 +124,18 @@ _Tiers 1-3 complete! Only Tier 4 (Nice to Have) remaining._
 
 ## TIER 4: Nice to Have (Future)
 
-- [ ] Undo/redo system (history stack)
-- [ ] Combat round recap/summary
-- [ ] Encounter difficulty calculator
-- [ ] Persistent encounter history
+- [x] Undo/redo system (history stack)
+  - Created usePersistentHistory hook with undo/redo/canUndo/canRedo
+  - Added undo/redo buttons to EncounterPanel with ↶/↷ icons
+  - Persists to localStorage while maintaining history
+- [x] Combat round recap/summary
+  - Detects round transitions, shows toast with standing/down combatant counts
+- [x] Encounter difficulty calculator
+  - Compares PC vs NPC toughness, numbers, and defense
+  - Displays difficulty rating (Trivial/Easy/Balanced/Hard/Deadly/Overwhelming)
+- [x] Persistent encounter history
+  - Saves encounters to localStorage when cleared (up to 10)
+  - Shows past encounters in Manage Combatants modal with restore/delete
 - [x] Dark mode refinements
   - Fixed theme toggle icon visibility (now uses accent color)
   - Fixed button colors in light mode (consolidated CSS rules)

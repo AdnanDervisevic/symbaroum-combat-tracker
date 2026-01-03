@@ -1,6 +1,8 @@
 import { useEffect } from 'react';
-import type { FormEvent } from 'react';
-import type { Character, EncounterState, CharacterAttributes } from '../../types';
+import type { FormEvent as ReactFormEvent } from 'react';
+import type { Character, EncounterState, EncounterHistoryEntry, CharacterAttributes } from '../../types';
+
+type FormEvent = ReactFormEvent<HTMLFormElement>;
 
 type NpcDraft = {
   name: string;
@@ -18,12 +20,15 @@ type Props = {
   encounter: EncounterState;
   selectedPcIds: string[];
   npcDraft: NpcDraft;
+  encounterHistory: EncounterHistoryEntry[];
   onClose: () => void;
   onTogglePcSelection: (id: string) => void;
   onAddSelectedPcs: () => void;
   onClearEncounter: () => void;
   onNpcDraftChange: <K extends keyof NpcDraft>(field: K, value: NpcDraft[K]) => void;
   onAddNpc: (ev: FormEvent) => void;
+  onRestoreEncounter: (entry: EncounterHistoryEntry) => void;
+  onDeleteHistoryEntry: (id: string) => void;
 };
 
 export function AddCombatantModal({
@@ -31,12 +36,15 @@ export function AddCombatantModal({
   encounter,
   selectedPcIds,
   npcDraft,
+  encounterHistory,
   onClose,
   onTogglePcSelection,
   onAddSelectedPcs,
   onClearEncounter,
   onNpcDraftChange,
   onAddNpc,
+  onRestoreEncounter,
+  onDeleteHistoryEntry,
 }: Props) {
   useEffect(() => {
     function handleKeyDown(e: KeyboardEvent) {
@@ -168,6 +176,28 @@ export function AddCombatantModal({
               <button type="submit">Add NPC</button>
             </form>
           </section>
+
+          {encounterHistory.length > 0 && (
+            <section className="modal-section">
+              <h4>Past Encounters</h4>
+              <div className="history-list">
+                {encounterHistory.map((entry) => (
+                  <div key={entry.id} className="history-item">
+                    <div className="history-info">
+                      <strong>{entry.label}</strong>
+                      <small className="muted">
+                        {new Date(entry.timestamp).toLocaleDateString()} {new Date(entry.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      </small>
+                    </div>
+                    <div className="history-actions">
+                      <button onClick={() => onRestoreEncounter(entry)}>Restore</button>
+                      <button className="danger ghost" onClick={() => onDeleteHistoryEntry(entry.id)}>×</button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </section>
+          )}
         </div>
       </div>
     </div>
