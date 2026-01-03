@@ -91,9 +91,22 @@ main {
 
 .card {
   background: var(--card);
-  border: 1px solid var(--border);
+  border: 2px solid transparent;
   border-radius: 4px;
   padding: 10px;
+}
+
+.card:not(.active) {
+  border-color: var(--border);
+}
+
+.card.active {
+  border-color: var(--accent);
+  box-shadow: 0 0 12px rgba(74, 93, 74, 0.4);
+}
+
+[data-theme="dark"] .card.active {
+  box-shadow: 0 0 16px rgba(90, 111, 90, 0.5);
 }
 
 .card-line {
@@ -168,7 +181,7 @@ main {
   border: 1px solid var(--border);
   border-radius: 0;
   padding: 8px 12px 12px;
-  background: #fffdf2;
+  background: var(--attr-bg);
 }
 
 .attributes-editor summary {
@@ -217,7 +230,7 @@ main {
   font-size: 10px;
   color: var(--muted);
   border: 1px solid var(--accent);
-  background: #ffffff;
+  background: var(--card);
 }
 
 .stat-field span {
@@ -238,12 +251,12 @@ main {
   min-width: 0;
   height: 24px;
   text-align: center;
-  background: #ffffff;
+  background: var(--card);
 }
 
 .stat-field input[readonly] {
   border: 0;
-  background: #f6f6f6;
+  background: var(--input-readonly);
   color: var(--ink);
 }
 
@@ -271,7 +284,7 @@ main {
   border: 1px solid var(--accent);
   border-radius: 0;
   padding: 0;
-  background: #ffffff;
+  background: var(--card);
   text-align: center;
 }
 
@@ -332,11 +345,10 @@ label.toggle {
 }
 
 textarea,
-input,
-button {
+input {
   border-radius: 0;
   border: 1px solid var(--border);
-  background: #fffdf4;
+  background: var(--input-bg);
   color: var(--ink);
   padding: 6px 8px;
   font: inherit;
@@ -354,9 +366,9 @@ input[type='number'] {
 }
 
 input[readonly] {
-  background: #f4f4f4;
+  background: var(--input-readonly);
   color: var(--ink);
-  border-color: #c9c9c9;
+  border-color: var(--border);
 }
 
 textarea {
@@ -366,8 +378,14 @@ textarea {
   margin-bottom: 8px;
 }
 
-button {
-  background: var(--ink);
+button,
+.panel-header button,
+.panel-actions button {
+  border-radius: 0;
+  border: 1px solid var(--border);
+  padding: 6px 8px;
+  font: inherit;
+  background: var(--accent);
   color: #ffffff;
   cursor: pointer;
   letter-spacing: 0.04em;
@@ -392,6 +410,12 @@ button.danger {
   color: #8f2c1c;
 }
 
+[data-theme="dark"] button.danger {
+  border-color: rgba(166, 93, 74, 0.6);
+  background: rgba(166, 93, 74, 0.25);
+  color: #d4a090;
+}
+
 button.ghost {
   background: transparent;
   color: var(--ink);
@@ -410,11 +434,19 @@ button.ghost {
   background: var(--card);
   display: flex;
   gap: 10px;
-  align-items: center;
+  align-items: flex-start;
+  cursor: pointer;
+}
+
+.pc-option > div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
 }
 
 .pc-option.disabled {
   opacity: 0.45;
+  cursor: not-allowed;
 }
 
 .inline-form.labeled {
