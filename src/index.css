@@ -19,6 +19,25 @@
   --accent-light: #2a2a2a;
   --shadow: rgba(0, 0, 0, 0.08);
   --danger: #b44532;
+  --input-bg: #fffdf4;
+  --input-readonly: #f4f4f4;
+  --attr-bg: #fffdf2;
+}
+
+[data-theme="dark"] {
+  --page: #1a1f1a;
+  --panel: #232923;
+  --card: #2a322a;
+  --ink: #e8e4dc;
+  --muted: #9a9689;
+  --border: #3d4a3d;
+  --accent: #4a5d4a;
+  --accent-light: #5a6f5a;
+  --shadow: rgba(0, 0, 0, 0.3);
+  --danger: #a65d4a;
+  --input-bg: #1f261f;
+  --input-readonly: #252c25;
+  --attr-bg: #252c25;
 }
 
 * {
@@ -33,6 +52,11 @@ body {
   background-image: linear-gradient(180deg, rgba(255,255,255,0.65), rgba(255,255,255,0.65)),
     url('data:image/svg+xml,%3Csvg width="170" height="170" viewBox="0 0 170 170" xmlns="http://www.w3.org/2000/svg"%3E%3Cpath d="M0 169h170" stroke="%23d5d5d5" stroke-width="1"/%3E%3C/svg%3E');
   background-size: cover, 100% 48px;
+}
+
+[data-theme="dark"] body {
+  background-image: linear-gradient(180deg, rgba(0,0,0,0.2), rgba(0,0,0,0.2)),
+    url('data:image/svg+xml,%3Csvg width="170" height="170" viewBox="0 0 170 170" xmlns="http://www.w3.org/2000/svg"%3E%3Cpath d="M0 169h170" stroke="%232a352a" stroke-width="1"/%3E%3C/svg%3E');
 }
 
 #root {

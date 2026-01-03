@@ -64,8 +64,15 @@ function App() {
   const [isBuilderOpen, setBuilderOpen] = useState(false);
   const [painFlash, setPainFlash] = useState<PainFlash | null>(null);
   const [editingIds, setEditingIds] = useState<Record<string, boolean>>({});
+  const [theme, setTheme] = usePersistentState<"light" | "dark">("sct.theme", () => "light");
 
-  const activeMember = encounter.members[encounter.turnIndex];
+  useEffect(() => {
+    document.documentElement.dataset.theme = theme;
+  }, [theme]);
+
+  function toggleTheme() {
+    setTheme((prev) => (prev === "light" ? "dark" : "light"));
+  }
 
   function updateCharacter(id: string, patch: Partial<Character>) {
     setCharacters((prev) => prev.map((c) => (c.id === id ? { ...c, ...patch } : c)));
