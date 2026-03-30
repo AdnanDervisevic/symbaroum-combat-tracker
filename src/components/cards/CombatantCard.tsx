@@ -5,6 +5,13 @@ import { ATTRIBUTE_FIELDS } from '../../utils/combatLogic';
 const hasAttributes = (attrs?: CharacterAttributes | null) =>
   !!attrs && ATTRIBUTE_FIELDS.some(({ key }) => attrs[key] !== null && attrs[key] !== undefined);
 
+// In Symbaroum, 10 is the baseline (modifier 0). Each point above 10 gives −1
+// and each point below 10 gives +1, so modifier = 10 − rawValue.
+function attrModifier(v: number): string {
+  const mod = 10 - v;
+  return mod > 0 ? `+${mod}` : String(mod);
+}
+
 type Props = {
   member: Combatant;
   isActive: boolean;
@@ -41,6 +48,9 @@ export function CombatantCard({
             aria-readonly={!isEditing}
             onChange={(e) => onUpdate(member.id, { name: e.target.value })}
           />
+          {member.monsterType && (
+            <span className="monster-type-badge">{member.monsterType}</span>
+          )}
         </div>
         <div className="order-buttons">
           <button className="icon" onClick={() => onMove(member.id, "up")}>
@@ -133,7 +143,7 @@ export function CombatantCard({
             return (
               <div key={key} className="attr-cell" data-attr={key}>
                 <span>{label}</span>
-                <strong>{v}</strong>
+                <strong>{attrModifier(v)}</strong>
               </div>
             );
           })}

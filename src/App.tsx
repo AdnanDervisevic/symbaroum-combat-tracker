@@ -8,7 +8,7 @@ import "./App.css";
 import { usePersistentState } from "./hooks/usePersistentState";
 import { usePersistentHistory } from "./hooks/usePersistentHistory";
 import { buildDefaultCharacters } from "./data/defaultCharacters";
-import type { Character, Combatant, EncounterState, EncounterHistoryEntry, CharacterAttributes, AttributeKey } from "./types";
+import type { Character, Combatant, EncounterState, EncounterHistoryEntry, CharacterAttributes, AttributeKey, BestiaryEntry } from "./types";
 import { clamp, uid } from "./utils";
 import { exportToFile, importFromFile } from "./utils/exportImport";
 import {
@@ -19,6 +19,8 @@ import {
 } from "./utils/combatLogic";
 import { CharactersPanel, EncounterPanel, HelpPanel, AddCombatantModal } from "./components";
 import type { NpcDraft } from "./components";
+import { NPC_COUNT_MIN, NPC_COUNT_MAX } from "./utils/npcConstants";
+import type { MonsterPreset } from "./data/defaultMonsters";
 
 const TAB_OPTIONS = ["characters", "encounter", "help"] as const;
 type TabKey = (typeof TAB_OPTIONS)[number];
@@ -38,7 +40,9 @@ const defaultEncounterState = (): EncounterState => ({
 });
 
 const buildNpcDraft = (): NpcDraft => ({
+  monsterType: "",
   name: "",
+  count: 1,
   initiative: 0,
   toughness: 10,
   defense: 10,
@@ -67,6 +71,10 @@ function App() {
   const [theme, setTheme] = usePersistentState<"light" | "dark">("sct.theme", () => "light");
   const [encounterHistory, setEncounterHistory] = usePersistentState<EncounterHistoryEntry[]>(
     "sct.encounterHistory",
+    () => []
+  );
+  const [bestiary, setBestiary] = usePersistentState<BestiaryEntry[]>(
+    "sct.bestiary",
     () => []
   );
 
@@ -112,7 +120,7 @@ function App() {
   }
 
   function handleExport() {
-    exportToFile(characters, encounter);
+    exportToFile(characters, encounter, bestiary);
     toast.success("Data exported", { position: "bottom-right", autoClose: 2000 });
   }
 
@@ -127,6 +135,7 @@ function App() {
     if (!window.confirm("This will replace all current data. Continue?")) return;
     setCharacters(result.data.characters);
     setEncounter(result.data.encounter);
+    setBestiary(result.data.bestiary ?? []);
     toast.success("Data imported", { position: "bottom-right", autoClose: 2000 });
   }
 
@@ -178,16 +187,67 @@ function App() {
     setNpcDraft((prev) => ({ ...prev, [field]: value }));
   }
 
+  function loadBestiaryEntry(entry: BestiaryEntry) {
+    setNpcDraft({
+      monsterType: entry.monsterType,
+      name: "",
+      count: 1,
+      initiative: entry.initiative,
+      toughness: entry.toughness,
+      defense: entry.defense,
+      armor: entry.armor,
+      painThreshold: entry.painThreshold,
+      note: entry.note,
+      attributes: null,
+    });
+  }
+
+  function deleteBestiaryEntry(id: string) {
+    setBestiary((prev) => prev.filter((e) => e.id !== id));
+  }
+
+  function handleLoadPreset(preset: MonsterPreset) {
+    setNpcDraft({
+      monsterType: preset.name,
+      name: "",
+      count: 1,
+      initiative: preset.attributes.qui ?? 0,
+      toughness: preset.toughness ?? 10,
+      defense: preset.defense ?? 0,
+      armor: preset.armor ?? '',
+      painThreshold: preset.painThreshold,
+      note: "",
+      attributes: preset.attributes,
+    });
+  }
+
   function addNpc(ev: FormEvent) {
     ev.preventDefault();
-    setEncounter((prev) => ({
-      ...prev,
-      members: [
-        ...prev.members,
-        {
+    const count = Math.max(NPC_COUNT_MIN, Math.min(NPC_COUNT_MAX, npcDraft.count));
+    const monsterType = npcDraft.monsterType.trim();
+    const baseName = npcDraft.name.trim();
+
+    setEncounter((prev) => {
+      const existingTypeCount = monsterType
+        ? prev.members.filter((m) => m.monsterType === monsterType).length
+        : 0;
+      const existingNpcCount = prev.members.filter((m) => m.source === "npc").length;
+
+      const newMembers: Combatant[] = [];
+      for (let i = 0; i < count; i++) {
+        let name: string;
+        if (baseName) {
+          name = count > 1 ? `${baseName} ${i + 1}` : baseName;
+        } else if (monsterType) {
+          name = `${monsterType} ${existingTypeCount + i + 1}`;
+        } else {
+          name = count > 1 ? `NPC ${existingNpcCount + i + 1}` : "NPC";
+        }
+        newMembers.push({
           id: uid("cmb"),
           source: "npc",
-          name: npcDraft.name.trim() || "NPC",
+          monsterType: monsterType || undefined,
+          name,
           initiative: Number(npcDraft.initiative) || 0,
           toughness: Number(npcDraft.toughness) || 0,
           defense: Number(npcDraft.defense) || 0,
@@ -196,9 +256,32 @@ function App() {
           prone: false,
           flanked: false,
           note: npcDraft.note.trim(),
-        },
-      ],
-    }));
+        });
+      }
+      return { ...prev, members: [...prev.members, ...newMembers] };
+    });
+
+    if (monsterType) {
+      setBestiary((prev) => {
+        const existing = prev.find((e) => e.monsterType === monsterType);
+        const entry: BestiaryEntry = {
+          id: existing ? existing.id : uid("bst"),
+          monsterType,
+          initiative: Number(npcDraft.initiative) || 0,
+          toughness: Number(npcDraft.toughness) || 0,
+          defense: Number(npcDraft.defense) || 0,
+          armor: npcDraft.armor.trim() || "Light (d4)",
+          painThreshold: npcDraft.painThreshold ?? null,
+          note: npcDraft.note.trim(),
+          updatedAt: Date.now(),
+        };
+        if (existing) {
+          return prev.map((e) => (e.id === existing.id ? entry : e));
+        }
+        return [...prev, entry];
+      });
+    }
+
     setNpcDraft(buildNpcDraft());
   }
 
@@ -441,6 +524,7 @@ function App() {
           encounter={encounter}
           selectedPcIds={selectedPcIds}
           npcDraft={npcDraft}
+          bestiary={bestiary}
           encounterHistory={encounterHistory}
           onClose={() => setBuilderOpen(false)}
           onTogglePcSelection={togglePcSelection}
@@ -448,6 +532,9 @@ function App() {
           onClearEncounter={clearEncounter}
           onNpcDraftChange={handleNpcDraftChange}
           onAddNpc={addNpc}
+          onLoadPreset={handleLoadPreset}
+          onLoadBestiaryEntry={loadBestiaryEntry}
+          onDeleteBestiaryEntry={deleteBestiaryEntry}
           onRestoreEncounter={restoreEncounter}
           onDeleteHistoryEntry={deleteHistoryEntry}
         />

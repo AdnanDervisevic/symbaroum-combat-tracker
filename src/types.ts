@@ -30,6 +30,7 @@ export type Combatant = {
   id: string
   source: CombatantSource
   refId?: string | null
+  monsterType?: string
   name: string
   initiative: number
   toughness: number
@@ -42,6 +43,18 @@ export type Combatant = {
   note?: string
 }
 
+export type BestiaryEntry = {
+  id: string
+  monsterType: string
+  initiative: number
+  toughness: number
+  defense: number
+  armor: string
+  painThreshold: number | null
+  note: string
+  updatedAt: number
+}
+
 export type EncounterState = {
   members: Combatant[]
   turnIndex: number
@@ -52,6 +65,7 @@ export type ExportPayload = {
   version: number
   characters: Character[]
   encounter: EncounterState
+  bestiary?: BestiaryEntry[]
 }
 
 export type EncounterHistoryEntry = {

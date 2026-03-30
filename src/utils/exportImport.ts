@@ -1,20 +1,22 @@
-import type { Character, EncounterState, ExportPayload } from '../types';
+import type { Character, EncounterState, ExportPayload, BestiaryEntry } from '../types';
 
 const CURRENT_VERSION = 1;
 
 function createExportPayload(
   characters: Character[],
-  encounter: EncounterState
+  encounter: EncounterState,
+  bestiary: BestiaryEntry[]
 ): ExportPayload {
   return {
     version: CURRENT_VERSION,
     characters,
     encounter,
+    bestiary,
   };
 }
 
-export function exportToFile(characters: Character[], encounter: EncounterState): void {
-  const payload = createExportPayload(characters, encounter);
+export function exportToFile(characters: Character[], encounter: EncounterState, bestiary: BestiaryEntry[]): void {
+  const payload = createExportPayload(characters, encounter, bestiary);
   const json = JSON.stringify(payload, null, 2);
   const blob = new Blob([json], { type: 'application/json' });
   const url = URL.createObjectURL(blob);
