@@ -19,6 +19,8 @@ import {
 } from "./utils/combatLogic";
 import { CharactersPanel, EncounterPanel, HelpPanel, AddCombatantModal } from "./components";
 import type { NpcDraft } from "./components";
+import { NPC_COUNT_MIN, NPC_COUNT_MAX } from "./utils/npcConstants";
+import type { MonsterPreset } from "./data/defaultMonsters";
 
 const TAB_OPTIONS = ["characters", "encounter", "help"] as const;
 type TabKey = (typeof TAB_OPTIONS)[number];
@@ -36,9 +38,6 @@ const defaultEncounterState = (): EncounterState => ({
   turnIndex: 0,
   round: 1,
 });
-
-const NPC_COUNT_MIN = 1;
-const NPC_COUNT_MAX = 20;
 
 const buildNpcDraft = (): NpcDraft => ({
   monsterType: "",
@@ -205,6 +204,21 @@ function App() {
 
   function deleteBestiaryEntry(id: string) {
     setBestiary((prev) => prev.filter((e) => e.id !== id));
+  }
+
+  function handleLoadPreset(preset: MonsterPreset) {
+    setNpcDraft({
+      monsterType: preset.name,
+      name: "",
+      count: 1,
+      initiative: preset.attributes.qui ?? 0,
+      toughness: preset.toughness,
+      defense: preset.defense,
+      armor: preset.armor,
+      painThreshold: preset.painThreshold,
+      note: "",
+      attributes: preset.attributes,
+    });
   }
 
   function addNpc(ev: FormEvent) {
@@ -518,6 +532,7 @@ function App() {
           onClearEncounter={clearEncounter}
           onNpcDraftChange={handleNpcDraftChange}
           onAddNpc={addNpc}
+          onLoadPreset={handleLoadPreset}
           onLoadBestiaryEntry={loadBestiaryEntry}
           onDeleteBestiaryEntry={deleteBestiaryEntry}
           onRestoreEncounter={restoreEncounter}

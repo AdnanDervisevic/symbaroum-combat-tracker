@@ -1,11 +1,11 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import type { FormEvent as ReactFormEvent } from 'react';
 import type { Character, EncounterState, EncounterHistoryEntry, CharacterAttributes, BestiaryEntry } from '../../types';
+import { DEFAULT_MONSTERS, MONSTER_CATEGORIES } from '../../data/defaultMonsters';
+import type { MonsterPreset } from '../../data/defaultMonsters';
+import { NPC_COUNT_MIN, NPC_COUNT_MAX } from '../../utils/npcConstants';
 
 type FormEvent = ReactFormEvent<HTMLFormElement>;
-
-const NPC_COUNT_MIN = 1;
-const NPC_COUNT_MAX = 20;
 
 type NpcDraft = {
   monsterType: string;
@@ -33,6 +33,7 @@ type Props = {
   onClearEncounter: () => void;
   onNpcDraftChange: <K extends keyof NpcDraft>(field: K, value: NpcDraft[K]) => void;
   onAddNpc: (ev: FormEvent) => void;
+  onLoadPreset: (preset: MonsterPreset) => void;
   onLoadBestiaryEntry: (entry: BestiaryEntry) => void;
   onDeleteBestiaryEntry: (id: string) => void;
   onRestoreEncounter: (entry: EncounterHistoryEntry) => void;
@@ -52,6 +53,7 @@ export function AddCombatantModal({
   onClearEncounter,
   onNpcDraftChange,
   onAddNpc,
+  onLoadPreset,
   onLoadBestiaryEntry,
   onDeleteBestiaryEntry,
   onRestoreEncounter,
@@ -68,6 +70,16 @@ export function AddCombatantModal({
   }, [onClose]);
 
   const addLabel = npcDraft.count > 1 ? `Add ${npcDraft.count} NPCs` : 'Add NPC';
+  const presetSelectRef = useRef<HTMLSelectElement>(null);
+
+  function handlePresetChange(e: React.ChangeEvent<HTMLSelectElement>) {
+    const name = e.target.value;
+    if (!name) return;
+    const preset = DEFAULT_MONSTERS.find((m) => m.name === name);
+    if (preset) onLoadPreset(preset);
+    // Reset the select back to the placeholder after loading
+    if (presetSelectRef.current) presetSelectRef.current.value = '';
+  }
 
   return (
     <div className="modal-overlay" role="dialog" aria-modal="true">
@@ -121,6 +133,28 @@ export function AddCombatantModal({
 
           <section className="modal-section">
             <h4>Quick NPC</h4>
+            <div className="preset-row">
+              <label className="preset-label">
+                <span>Load from Book</span>
+                <select
+                  ref={presetSelectRef}
+                  defaultValue=""
+                  onChange={handlePresetChange}
+                  className="preset-select"
+                >
+                  <option value="" disabled>— select monster —</option>
+                  {MONSTER_CATEGORIES.map((cat) => (
+                    <optgroup key={cat} label={cat}>
+                      {DEFAULT_MONSTERS.filter((m) => m.category === cat).map((m) => (
+                        <option key={m.name} value={m.name}>
+                          {m.name} ({m.resistance})
+                        </option>
+                      ))}
+                    </optgroup>
+                  ))}
+                </select>
+              </label>
+            </div>
             <form className="inline-form labeled" onSubmit={onAddNpc}>
               <label className="wide">
                 <span>Monster Type</span>
@@ -135,7 +169,7 @@ export function AddCombatantModal({
                 <input
                   value={npcDraft.name}
                   onChange={(e) => onNpcDraftChange("name", e.target.value)}
-                  placeholder="Auto-generated if blank"
+                  placeholder="Auto-numbered from Monster Type if blank"
                 />
               </label>
               <label>
