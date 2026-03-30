@@ -1,11 +1,16 @@
 import { useEffect } from 'react';
 import type { FormEvent as ReactFormEvent } from 'react';
-import type { Character, EncounterState, EncounterHistoryEntry, CharacterAttributes } from '../../types';
+import type { Character, EncounterState, EncounterHistoryEntry, CharacterAttributes, BestiaryEntry } from '../../types';
 
 type FormEvent = ReactFormEvent<HTMLFormElement>;
 
+const NPC_COUNT_MIN = 1;
+const NPC_COUNT_MAX = 20;
+
 type NpcDraft = {
+  monsterType: string;
   name: string;
+  count: number;
   initiative: number;
   toughness: number;
   defense: number;
@@ -20,6 +25,7 @@ type Props = {
   encounter: EncounterState;
   selectedPcIds: string[];
   npcDraft: NpcDraft;
+  bestiary: BestiaryEntry[];
   encounterHistory: EncounterHistoryEntry[];
   onClose: () => void;
   onTogglePcSelection: (id: string) => void;
@@ -27,6 +33,8 @@ type Props = {
   onClearEncounter: () => void;
   onNpcDraftChange: <K extends keyof NpcDraft>(field: K, value: NpcDraft[K]) => void;
   onAddNpc: (ev: FormEvent) => void;
+  onLoadBestiaryEntry: (entry: BestiaryEntry) => void;
+  onDeleteBestiaryEntry: (id: string) => void;
   onRestoreEncounter: (entry: EncounterHistoryEntry) => void;
   onDeleteHistoryEntry: (id: string) => void;
 };
@@ -36,6 +44,7 @@ export function AddCombatantModal({
   encounter,
   selectedPcIds,
   npcDraft,
+  bestiary,
   encounterHistory,
   onClose,
   onTogglePcSelection,
@@ -43,6 +52,8 @@ export function AddCombatantModal({
   onClearEncounter,
   onNpcDraftChange,
   onAddNpc,
+  onLoadBestiaryEntry,
+  onDeleteBestiaryEntry,
   onRestoreEncounter,
   onDeleteHistoryEntry,
 }: Props) {
@@ -55,6 +66,8 @@ export function AddCombatantModal({
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, [onClose]);
+
+  const addLabel = npcDraft.count > 1 ? `Add ${npcDraft.count} NPCs` : 'Add NPC';
 
   return (
     <div className="modal-overlay" role="dialog" aria-modal="true">
@@ -109,12 +122,20 @@ export function AddCombatantModal({
           <section className="modal-section">
             <h4>Quick NPC</h4>
             <form className="inline-form labeled" onSubmit={onAddNpc}>
+              <label className="wide">
+                <span>Monster Type</span>
+                <input
+                  value={npcDraft.monsterType}
+                  onChange={(e) => onNpcDraftChange("monsterType", e.target.value)}
+                  placeholder="e.g. Goblin"
+                />
+              </label>
               <label>
                 <span>Name</span>
                 <input
                   value={npcDraft.name}
                   onChange={(e) => onNpcDraftChange("name", e.target.value)}
-                  required
+                  placeholder="Auto-generated if blank"
                 />
               </label>
               <label>
@@ -166,6 +187,18 @@ export function AddCombatantModal({
                   }
                 />
               </label>
+              <label>
+                <span>Quantity</span>
+                <input
+                  type="number"
+                  min={NPC_COUNT_MIN}
+                  max={NPC_COUNT_MAX}
+                  value={npcDraft.count}
+                  onChange={(e) =>
+                    onNpcDraftChange("count", Math.max(NPC_COUNT_MIN, Math.min(NPC_COUNT_MAX, Number(e.target.value) || NPC_COUNT_MIN)))
+                  }
+                />
+              </label>
               <label className="wide">
                 <span>Notes</span>
                 <input
@@ -173,8 +206,32 @@ export function AddCombatantModal({
                   onChange={(e) => onNpcDraftChange("note", e.target.value)}
                 />
               </label>
-              <button type="submit">Add NPC</button>
+              <button type="submit">{addLabel}</button>
             </form>
+          </section>
+
+          <section className="modal-section">
+            <h4>Bestiary</h4>
+            {bestiary.length === 0 ? (
+              <p className="muted">Add an NPC with a Monster Type to save it here.</p>
+            ) : (
+              <div className="bestiary-list">
+                {bestiary.map((entry) => (
+                  <div key={entry.id} className="bestiary-item">
+                    <div className="bestiary-info">
+                      <strong>{entry.monsterType}</strong>
+                      <small className="muted">
+                        Tough {entry.toughness} • Def {entry.defense} • {entry.armor}
+                      </small>
+                    </div>
+                    <div className="bestiary-actions">
+                      <button onClick={() => onLoadBestiaryEntry(entry)}>Load</button>
+                      <button className="danger ghost" onClick={() => onDeleteBestiaryEntry(entry.id)}>×</button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </section>
 
           {encounterHistory.length > 0 && (

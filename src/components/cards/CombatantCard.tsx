@@ -41,6 +41,9 @@ export function CombatantCard({
             aria-readonly={!isEditing}
             onChange={(e) => onUpdate(member.id, { name: e.target.value })}
           />
+          {member.monsterType && (
+            <span className="monster-type-badge">{member.monsterType}</span>
+          )}
         </div>
         <div className="order-buttons">
           <button className="icon" onClick={() => onMove(member.id, "up")}>

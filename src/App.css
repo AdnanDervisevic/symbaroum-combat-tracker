@@ -515,6 +515,8 @@ button.ghost {
   display: flex;
   flex-direction: column;
   gap: 16px;
+  max-height: calc(100vh - 120px);
+  overflow-y: auto;
 }
 
 .modal-section {
@@ -701,6 +703,54 @@ button.ghost {
 }
 
 .history-actions button {
+  padding: 4px 8px;
+  font-size: 11px;
+}
+
+.monster-type-badge {
+  display: block;
+  font-size: 10px;
+  color: var(--muted);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 1px 0 0;
+  line-height: 1.2;
+}
+
+.bestiary-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.bestiary-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 10px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+}
+
+.bestiary-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.bestiary-info strong {
+  font-size: 13px;
+}
+
+.bestiary-actions {
+  display: flex;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.bestiary-actions button {
   padding: 4px 8px;
   font-size: 11px;
 }
