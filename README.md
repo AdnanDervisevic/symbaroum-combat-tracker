@@ -1,73 +1,57 @@
-# React + TypeScript + Vite
+# Symbaroum Combat Tracker
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A browser-based initiative and combat tracker for the [Symbaroum](https://frialigan.se/en/games/symbaroum/) tabletop RPG. Manage your party's character roster, run encounters turn-by-turn, track damage and conditions, and keep a reusable bestiary — all saved automatically in your browser.
 
-Currently, two official plugins are available:
+## Features
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+- **Character Roster** — Create and manage player characters with full Symbaroum attributes (Accuracy, Cunning, Discretion, Perception, Quickness, Resolve, Strength, Vigilance), toughness, defense, armor, and Pain Threshold.
+- **Initiative Tracker** — Add PCs and NPCs to an encounter, sort by initiative, and step through turns round by round.
+- **Damage & Healing** — Apply damage or healing to any combatant. Pain Threshold violations automatically trigger the Prone condition (and a visual flash alert).
+- **Status Conditions** — Track Prone and Flanked states per combatant; Prone clears automatically on healing.
+- **NPC Management** — Quickly add one or more NPCs with custom stats; monster types are numbered automatically.
+- **Bestiary** — Monster types you add are saved and can be reloaded in future encounters without re-entering stats.
+- **Monster Presets** — Browse built-in Symbaroum monster presets to populate NPC stats with one click.
+- **Undo / Redo** — Full undo/redo history for the encounter state, persisted across page reloads.
+- **Encounter History** — Cleared encounters are saved (up to 10) and can be restored from the Manage Combatants modal.
+- **Encounter Difficulty** — Automatic difficulty rating (Trivial → Overwhelming) based on PC vs. NPC toughness, numbers, and defense.
+- **Round Recap** — Toast notification on round transition showing how many combatants are still standing.
+- **Export / Import** — Save your entire session (characters, encounter, bestiary) to a JSON file and reload it later.
+- **Dark / Light Theme** — Toggle between themes; preference is saved in localStorage.
+- **Persistent State** — All data (characters, encounter, bestiary, theme) survives page refreshes via versioned localStorage keys.
 
-## React Compiler
+## Getting Started
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```bash
+npm install
+npm run dev
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+Open [http://localhost:5173](http://localhost:5173) in your browser.
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+### Other Scripts
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+| Command | Description |
+|---------|-------------|
+| `npm run dev` | Start the development server with HMR |
+| `npm run build` | Type-check and build for production |
+| `npm run preview` | Preview the production build locally |
+| `npm run lint` | Run ESLint |
+
+## Tech Stack
+
+- [React 19](https://react.dev/) + [TypeScript](https://www.typescriptlang.org/)
+- [Vite](https://vite.dev/) — build tooling & dev server
+- [react-toastify](https://fkhadra.github.io/react-toastify/) — toast notifications
+
+## Project Structure
+
 ```
+src/
+  components/       # UI panels, cards, and modals
+  data/             # Default characters and monster presets
+  hooks/            # usePersistentState, usePersistentHistory
+  utils/            # Combat logic, export/import, helpers
+  types.ts          # Shared TypeScript types
+  App.tsx           # Root orchestration component
+```
+
