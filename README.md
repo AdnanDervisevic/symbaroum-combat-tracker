@@ -1,6 +1,6 @@
 # Symbaroum Combat Tracker
 
-**🎲 [Play it now → symbaroum-combat-tracker.vercel.app](https://symbaroum-combat-tracker.vercel.app/)**
+**🎲 [Use it at your table → symbaroum-combat-tracker.vercel.app](https://symbaroum-combat-tracker.vercel.app/)**
 
 A browser-based initiative and combat tracker built for [Symbaroum](https://frialigan.se/en/games/symbaroum/) game masters and players. Bring it to the table on any device — no installation, no account, no internet connection required after the first load. Your characters, encounters, and bestiary are stored directly in your browser so your data is always there when you sit down to play.
 
