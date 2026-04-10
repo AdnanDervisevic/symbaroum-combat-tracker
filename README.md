@@ -1,6 +1,8 @@
 # Symbaroum Combat Tracker
 
-A browser-based initiative and combat tracker for the [Symbaroum](https://frialigan.se/en/games/symbaroum/) tabletop RPG. Manage your party's character roster, run encounters turn-by-turn, track damage and conditions, and keep a reusable bestiary — all saved automatically in your browser.
+**🎲 [Play it now → symbaroum-combat-tracker.vercel.app](https://symbaroum-combat-tracker.vercel.app/)**
+
+A browser-based initiative and combat tracker built for [Symbaroum](https://frialigan.se/en/games/symbaroum/) game masters and players. Bring it to the table on any device — no installation, no account, no internet connection required after the first load. Your characters, encounters, and bestiary are stored directly in your browser so your data is always there when you sit down to play.
 
 ## Features
 
