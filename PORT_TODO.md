@@ -321,9 +321,9 @@ a specific illegal state that [`src/types.ts`](src/types.ts) permits.
 ## Phase 2 — Data port + normalization  ⏱ 1 day
 
 - [ ] `monster_preset.ml` + `.mli`
-- [ ] Generate `monster_presets.ml` from [`src/data/defaultMonsters.ts`](src/data/defaultMonsters.ts) (84 presets)
+- [ ] Generate `monster_presets.ml` from [`src/data/defaultMonsters.ts`](src/data/defaultMonsters.ts) (**86** presets — the plan said 84; verified count is 86)
 - [ ] Port [`src/data/defaultCharacters.ts`](src/data/defaultCharacters.ts) → `default_roster.ml`
-- [ ] **Golden expect test dumping all 84 normalized presets in one `[%expect]`**, so the
+- [ ] **Golden expect test dumping all 86 normalized presets in one `[%expect]`**, so the
       Defense reconciliation lands as a reviewable diff rather than a silent rewrite
 - [ ] `dune runtest` green
 
@@ -341,11 +341,12 @@ Both sit in the same `number`-typed array. Today nothing consumes `defense` but 
 it does not matter. **The moment Defense becomes a to-hit target it matters enormously.**
 `Defense.t = private int` in `1..20` makes the two structurally distinguishable at the
 constructor; the golden test above makes the reconciliation reviewable.
+Also in that file, **verified 2026-08-22 by counting**: there are **86** presets, not 84.
+`armor` is a bare integer in **73**, dice (`1D4`/`1D8`) in **3**, and `null` in **10** — while
+PCs use `'Light (d4)'`. **7** presets have all four stat fields `null` and must be excluded
+from the model with a `Caveat.t` rather than defaulted.
 
-Also in that file: `armor` is a bare integer in 81 of 84 presets and dice in 3, while PCs use
-`'Light (d4)'`; 7 presets have all four stat fields `null`.
-
-**2. The app has no weapon or damage data at all.** The to-hit side is grounded — all 84
+**2. The app has no weapon or damage data at all.** The to-hit side is grounded — **79 of 86**
 presets carry `acc`. Only the damage die is a guess. Use the existing `resistance` field as
 the prior (`Weak → 1d6`, `Ordinary → 1d8`, `Challenging → 1d10`, `Strong → 1d12`), mark it
 `Estimated_from_resistance` in `Attack_profile.source`, make it editable in the UI, and
@@ -756,7 +757,7 @@ average defense — e.g. adding only Vigoi and/or Ymma. **Write the test to that
 `Expect_test_helpers_core.print_s [%sexp (x : t)]`.
 
 **Golden dumps:**
-- All 84 normalized presets in one `[%expect]` (Defense reconciliation as a reviewable diff)
+- All 86 normalized presets in one `[%expect]` (Defense reconciliation as a reviewable diff)
 - **Combat transcript** — a `Command.t list` applied step by step, printing state + events.
   The best single demo file in the repo.
 - Decoder error messages against ~10 malformed blobs
@@ -873,8 +874,43 @@ Kept for the record, because the reasoning is worth not re-deriving:
       is a reconstruction, reasonably but not fully confident against the core book. Verify
       against the actual rules text if a copy is available. Prone and flanking modifiers are
       **unverified**. Until verified, `doc/model.md` must say so plainly.
-- [ ] **Preset `defense` semantics** — resolve modifier-vs-target per preset in Phase 2. The
-      golden test makes the reconciliation reviewable, but someone has to decide the rule.
+- [ ] **Preset `defense` semantics — ANALYSED 2026-08-22, needs a human ruling.**
+
+      The plan recorded this as "Spring Elf stores a modifier, Servant Daemon stores a target."
+      That understates it. Full analysis of all presets (no toolchain needed — pure data):
+
+      | classification | count | rule |
+      |---|---|---|
+      | modifier | 36 | `defense == 10 − qui` |
+      | absolute target | 8 | `defense == qui` |
+      | modifier + armour | 6 | `defense == 10 − qui + armor` |
+      | **unexplained** | **29** | matches no rule tried |
+      | all four stat fields `null` | 7 | no data at all |
+
+      **The residual does not track armour**, so "armour is folded in" is refuted, not merely
+      unproven: residual `+2` occurs at armour 2, 3 and 4; residual `+4` at armour 3, 4, 7, 8
+      and 10. Extremes: Queen's Ranger −7, Sakofal +9, Kvarek and Niha +14.
+
+      **Conclusion: the stored `defense` field is not a reliable datum.** It was transcribed
+      from statblocks under at least three conventions, plus errors. No single rule recovers it.
+
+      **Recommendation (not yet ratified — this is the human call the plan flagged):**
+      derive Defense canonically from `qui` and **discard the stored field**, keeping it as
+      `defense_raw` purely so the Phase 2 golden test prints old → new and the reconciliation
+      is a reviewable diff rather than a silent rewrite.
+
+      Why `qui`: it is present and internally consistent for all 79 presets that have stats;
+      Defense derives from Quick in Symbaroum; and it already explains the two *coherent*
+      spellings — a preset storing `-3` at `qui: 13` is storing the pre-computed attacker
+      modifier `10 − qui`, and one storing `15` at `qui: 15` is storing the trait itself.
+      Same quantity, two spellings. Canonicalise on the trait, since `Defense.t = private int`
+      in `1..20` (the plan's design) *is* the trait.
+
+      Keep armour as separate damage reduction, which the model needs anyway — folding it into
+      Defense would double-count it.
+
+      The 7 all-`null` presets get no attack profile and must be excluded from analysis with a
+      `Caveat.t`, not defaulted. Never let a default masquerade as data.
 
 ---
 
