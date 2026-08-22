@@ -30,18 +30,13 @@ them**. This file is the only continuity. Trust it over any recollection.
 ## Current status
 
 ```
-Phase:        0 — Toolchain spike — RESTARTING ON WSL2. Blocker resolved; awaiting a reboot.
-Last session: 2026-08-22 — Native Windows opam proved unable to host `core` or `bonsai`
-              (see §0.1b). Human resolved the contradiction: **use WSL2**, which restores
-              the full approved plan. `wsl --install --no-distribution` succeeded and
-              enabled Virtual Machine Platform. **A REBOOT IS REQUIRED** before WSL2 can
-              start — it had not happened when this was written.
-Next action:  1. Confirm WSL2 works:  wsl --status   (must not say "virtualisation is not
-                 enabled"). If it still complains, the reboot has not happened yet — stop
-                 and ask for one.
-              2. Install Ubuntu:      wsl --install -d Ubuntu
-              3. Re-run Phase 0 §0.1 INSIDE Ubuntu, not on Windows. See §0.1c.
-              Do NOT start Phase 1 until a Bonsai hello-world renders.
+Phase:        0 — Toolchain spike — re-running inside WSL2. Ubuntu is up; opam not yet installed.
+Last session: 2026-08-23 — WSL2 + Ubuntu 26.04 LTS working (32 cores, 15 GB, 955 GB free).
+              Measured `/mnt/c` at ~78x slower than ext4 for dune-shaped I/O and decided
+              the build layout because of it (see §0.1c). Native Windows opam is abandoned.
+Next action:  Work through §0.1c. The FIRST item is a human step — `sudo apt install ...`
+              needs a password a tool shell cannot supply. Everything after it is automatable.
+              Do NOT start Phase 1 until a Bonsai hello-world renders in a browser (§0.2).
 ```
 
 ---
@@ -89,6 +84,9 @@ of rationale.
 | 2026-08-22 | **RESOLVED: use WSL2. This supersedes the "native Windows opam" decision above.** | Asked the human, who chose WSL2 over the Base-instead-of-Core alternative. This restores the plan exactly as approved — `Core`, `Bonsai`, `expect_test_helpers_core`, `virtual_dom`, `Fdeque` all become available again. Nothing else in this file needs rethinking; only Phase 0 gets re-run, inside Ubuntu. |
 | 2026-08-22 | The native Windows opam switch (`_opam/` at the repo root) is **abandoned, not deleted** | It is gitignored and costs nothing to leave. Deleting it is a Phase 8 tidy-up, not a blocker. Note it holds no `core`, so it cannot be reused. |
 | 2026-08-22 | WSL was already present; only **Virtual Machine Platform** was disabled | `wsl --install --no-distribution` enabled it and returned success, but the change **needs a reboot**. `HypervisorPresent` reads `True` while `VirtualizationFirmwareEnabled` reads `False` — that is the normal masked reading from inside a running hypervisor, **not** a firmware problem. Don't send anyone into the BIOS over it. |
+| 2026-08-23 | **The repo stays canonical on Windows.** Only `_build` and the opam switch move into the Linux filesystem. | Measured: `/mnt/c` is ~78x slower than ext4 for dune-shaped I/O (300 small file creates: 465 ms vs 6 ms). But a second clone in `~` means two working trees to keep in sync and a real chance of committing from the wrong one. Splitting the difference — sources on 9p (read-mostly, small project), build output on ext4 via `DUNE_BUILD_DIR`, and a **named global switch** instead of a local `_opam/` — gets nearly all the speed with none of the sync risk. Revisit with a measurement if builds get painful. |
+| 2026-08-23 | Ubuntu **26.04 LTS**, not the plan's unstated assumption | Whatever `wsl --install -d Ubuntu` shipped. Newer than expected; if an opam package needs an older glibc or a missing distro package, suspect this first. |
+| 2026-08-23 | `sudo` needs a password → **`apt` steps are permanent human hand-offs** | Not fixable from a tool shell, and passwords must not be handled by one. Structure future sessions so all `apt` work is batched into a single command the human runs once, rather than discovered piecemeal. |
 
 ---
 
@@ -186,38 +184,63 @@ use `ppx_expect` with plain sexp printing instead of `Expect_test_helpers_core.p
 §0.1 above is **dead**; it documents the native Windows attempt and is kept only as evidence.
 Everything below runs **inside Ubuntu**, not in PowerShell.
 
-**Prerequisites (Windows side, one time):**
+Drive Ubuntu from a Windows tool shell with:
 
-- [x] `wsl --install --no-distribution` → "The requested operation is successful. Changes will
-      not be effective until the system is rebooted." Virtual Machine Platform is now enabled.
-- [ ] **REBOOT.** Until this happens `wsl --status` says *"WSL2 is unable to start since
-      virtualisation is not enabled on this machine."* That message is about the pending
-      feature enablement, **not** the firmware. Do not send anyone into the BIOS.
-- [ ] `wsl --status` shows no virtualisation complaint
-- [ ] `wsl --install -d Ubuntu` — sets a UNIX username/password interactively. **This prompts,
-      so it cannot run from a non-interactive tool shell; a human runs it in a terminal.**
+```
+wsl.exe -d Ubuntu -- bash -s <<'SH'
+  ...script...
+SH
+```
+
+Piping the script on stdin avoids the nested-quoting mess that `bash -lc '...'` creates;
+that mess silently produced empty output once already.
+
+**Prerequisites (Windows side) — DONE:**
+
+- [x] `wsl --install --no-distribution` enabled Virtual Machine Platform (needed a reboot)
+- [x] Rebooted; `wsl --status` no longer complains about virtualisation
+- [x] Ubuntu **26.04 LTS** installed, WSL2, kernel 6.18.33.2. 32 cores, 15 GB RAM, 955 GB free.
+
+**Environment facts, measured:**
+
+- `sudo` **requires a password**, so every `apt` step is a human hand-off — a non-interactive
+  tool shell cannot do it, and must not try to handle the password.
+- A fresh install has an **empty apt index**: `apt-cache policy opam` returns nothing until
+  `apt update` has run. That is not "opam is unavailable".
+- **`/mnt/c` is ~78× slower than the Linux filesystem** for the small-file I/O dune does:
+  300 file creates took **465 ms** on `/mnt/c` vs **6 ms** on `~`. Measured, not assumed.
+
+**Decided (see decisions log): the repo stays canonical on Windows; only build output and the
+switch live in the Linux filesystem.** So:
+
+- The Windows working tree at `/mnt/c/Users/adnan/symbaroum-combat-tracker` is the one source
+  of truth. Windows-side editors and file tools keep working normally; no second clone to
+  keep in sync, and no chance of committing from the wrong copy.
+- `export DUNE_BUILD_DIR=$HOME/build/sct` keeps `_build/` off the 9p mount.
+- Use a **named global switch**, not a local `_opam/` in the repo, for the same reason.
+- Source reads still cross 9p. For a project this size that is expected to be fine.
+  **If builds become painful, re-measure and switch to a `~/symbaroum-combat-tracker` clone**
+  with the Windows tree as a git remote — and record that as a new decision row.
 
 **Inside Ubuntu:**
 
-- [ ] `sudo apt update && sudo apt install -y opam build-essential pkg-config m4 unzip curl git`
+- [ ] **HUMAN STEP (needs the sudo password):**
+      `sudo apt update && sudo apt install -y build-essential m4 unzip pkg-config bubblewrap rsync curl git ca-certificates libgmp-dev zlib1g-dev opam`
 - [ ] `opam init --bare --yes --disable-sandboxing`
       (`--disable-sandboxing` because bubblewrap is unreliable under WSL2)
-- [ ] Work from the repo. It is reachable at `/mnt/c/Users/adnan/symbaroum-combat-tracker`,
-      **but do not build there** — `/mnt/c` is 9p-mounted and pathologically slow for dune,
-      and a local switch on it will crawl. Either `git clone` into the Linux filesystem
-      (`~/symbaroum-combat-tracker`) and push/pull between the two, or accept the slowness
-      deliberately. **Decide this and record it as a decision-log row before proceeding.**
-- [ ] `opam switch create . 5.2.0 --yes --no-install`
-- [ ] `eval $(opam env)`
+- [ ] `opam switch create sct 5.2.0 --yes --no-install`  ← named, not local
+- [ ] `eval $(opam env --switch=sct --set-switch)`
 - [ ] `opam install -y core ppx_jane base_quickcheck expect_test_helpers_core yojson ppx_yojson_conv`
 - [ ] `opam install -y js_of_ocaml js_of_ocaml-ppx virtual_dom`
 - [ ] `opam install -y bonsai`  ← **note: NOT `bonsai_web`**, which is a library inside this
       package, not a package. Kept as three transactions so a Bonsai failure does not roll
       back and mask the core result — that split is what made the last spike diagnostic.
+- [ ] `opam install -y ocamlformat` and **pin the exact version** in the opam file, matching
+      `.ocamlformat`.
 - [ ] Record the **exact resolved versions** (`opam list core bonsai js_of_ocaml ocamlformat`)
       here. The plan requires pinning `bonsai` and following `bonsai/examples/` from that
       same release tag, because the API churned (Proc style → Cont style) and public docs lag.
-- [ ] `_opam/` and `_build/` already gitignored — confirm they still are in the clone
+- [ ] Confirm `_build/` and `_opam/` are still gitignored (they are, from the Windows attempt)
 
 ### 0.2 Prove it
 
