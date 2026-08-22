@@ -30,10 +30,14 @@ them**. This file is the only continuity. Trust it over any recollection.
 ## Current status
 
 ```
-Phase:        0 — Toolchain spike (not started)
-Last session: 2026-08-22 — branch created, this ledger committed. No OCaml yet.
-Next action:  Install opam (`winget install OCaml.opam`), then run Phase 0 §0.1 below
-              from PowerShell or cmd — NOT Git Bash.
+Phase:        0 — Toolchain spike — RUN, AND IT FAILED INFORMATIVELY. BLOCKED ON A HUMAN DECISION.
+Last session: 2026-08-22 — opam 2.5.2 + OCaml 5.2.0 local switch installed and working.
+              PROVED: `core` and `bonsai` CANNOT be installed on native Windows opam.
+              `base`, `ppx_jane`, `ppx_expect`, `base_quickcheck`, `yojson`,
+              `ppx_yojson_conv`, `dune`, `js_of_ocaml` all install fine.
+Next action:  RESOLVE THE BLOCKER IN "Open questions" BELOW. Two of the four settled
+              decisions (native Windows opam / Core + Bonsai) are mutually incompatible.
+              Do NOT start Phase 1 until a human picks a direction.
 ```
 
 ---
@@ -75,6 +79,9 @@ of rationale.
 | 2026-08-22 | **Build the real probability model now**; it replaces the difficulty heuristic | A straight port only proves syntax transcription. The model is what turns "ported a webapp" into "built a probabilistic model over a pure functional core". |
 | 2026-08-22 | **Fix the bugs, with a test documenting each** | Reproducing known-wrong behaviour is archaeology, not engineering. Each fix becomes a row in the README table. |
 | 2026-08-22 | **`master` is untouched** | The live Vercel deployment and its real user data (`sct.v1.*` localStorage keys) stay working throughout. |
+| 2026-08-22 | Split the plan's single `opam install` into three transactions | opam rolls back a whole failed transaction. One combined install would have reported "something failed" instead of "the core is fine, Bonsai is not" — which is the exact distinction the four fallbacks are keyed on. This is why we know precisely where the wall is. |
+| 2026-08-22 | **`bonsai_web` is not an opam package** | It is a *library* inside the `bonsai` package. The plan's install line named it as a package; that line is wrong. Corrected in §0.1. |
+| 2026-08-22 | **CONTRADICTION FOUND — unresolved.** Native Windows opam cannot host Core or Bonsai. | See "Phase 0 findings" and "Open questions". This is the first time the plan has been proven wrong about something load-bearing. |
 
 ---
 
@@ -92,23 +99,86 @@ Find out on day one, for ~45 minutes of effort, before writing a line of domain 
 
 ### 0.1 Install
 
-- [ ] `winget install OCaml.opam`
-- [ ] **From PowerShell or cmd — NOT Git Bash.** opam's Windows support uses its own Cygwin
+- [x] `winget install OCaml.opam` — got **opam 2.5.2**
+- [x] **From PowerShell or cmd — NOT Git Bash.** opam's Windows support uses its own Cygwin
       root; MSYS2 path mangling from Git Bash causes confusing, misleading failures.
-  - [ ] `opam init`
-  - [ ] `opam switch create . 5.2.0`
-  - [ ] `opam install core ppx_jane base_quickcheck expect_test_helpers_core yojson ppx_yojson_conv js_of_ocaml js_of_ocaml-ppx bonsai bonsai_web virtual_dom`
-- [ ] Add `_opam/` and `_build/` to `.gitignore`
+  - [x] `opam init --bare --yes --cygwin-internal-install` — exit 0
+  - [x] `opam switch create . 5.2.0 --yes --no-install` — exit 0, OCaml 5.2.0 + mingw-w64
+  - [ ] ~~`opam install core … bonsai bonsai_web …`~~ **FAILED — see findings below**
+- [x] Add `_opam/` and `_build/` to `.gitignore`
 - [ ] Record the **exact** resolved versions of `bonsai`, `js_of_ocaml`, and `ocamlformat`
       in the decisions log — Bonsai's API churned hard (Proc style with `Value.t`/`Computation.t`
       → Cont style with `Bonsai.t` and an explicit `graph`) and public docs lag the release.
       Follow `bonsai/examples/` **from the pinned release tag**, never blog posts.
 - [ ] `.ocamlformat` with `profile = janestreet` and a pinned exact version, matched in the opam file
 
+### 0.1b Phase 0 findings — READ THESE BEFORE RE-RUNNING ANYTHING
+
+**The spike did its job: it found the wall on day one, before any domain code was written.**
+
+#### What works on native Windows opam (verified installed in the local switch)
+
+| package | version |
+|---|---|
+| `dune` | 3.24.2 |
+| `base` | v0.16.5 |
+| `ppx_jane` | v0.16.0 |
+| `ppx_expect` | v0.16.2 |
+| `base_quickcheck` | v0.16.0 |
+| `yojson` | 3.0.0 |
+| `ppx_yojson_conv` | v0.16.0 |
+| `js_of_ocaml` + `js_of_ocaml-ppx` | 6.4.1 (verified by dry-run, not yet installed) |
+
+#### What does NOT work, and why
+
+**1. `core` is unavailable on native Windows at every version.** Two independent mechanisms:
+
+- `core >= v0.17` → depends on `base_bigstring >= v0.17`, which the opam repository marks
+  `available: arch != "x86_32" & os != "win32"`. opam refuses to even attempt it.
+- `core v0.16` → resolves to `base_bigstring v0.16.0`, whose C stubs fail to compile under
+  mingw-w64:
+  ```
+  base_bigstring_stubs.c:238:24: error: implicit declaration of function 'memmem'
+  ```
+  `memmem` is a glibc extension that mingw-w64 does not provide, so this is not a warning
+  that can be flagged away — there is nothing to link against.
+
+The `os != "win32"` marker from v0.17 onward is a **deliberate upstream decision**, not an
+accident. Do not burn a session trying to patch around it.
+
+**2. `bonsai` is unavailable on native Windows.** It transitively requires four separate
+win32-excluded packages:
+
+- `bonsai -> async >= v0.16 -> core_unix` — `os != "win32"`
+- `bonsai -> core_unix >= v0.15 -> ocaml_intrinsics` — `arch = "x86_64" & os != "win32"`
+- `bonsai -> textutils -> core >= v0.17 -> base_bigstring >= v0.17` — `os != "win32"`
+- with `bonsai` old enough to avoid those, it demands `core_kernel < v0.14 -> ocaml < 4.12.0`
+
+This is **exactly the risk the plan named as its biggest**, and it materialised. What the plan
+did *not* predict is that `core` falls with it.
+
+**3. `expect_test_helpers_core` depends on `core`**, so it falls too. Any Base-only path must
+use `ppx_expect` with plain sexp printing instead of `Expect_test_helpers_core.print_s`.
+
+#### Environment quirks that will bite the next session
+
+- **opam is not on this shell's PATH.** winget installed it to
+  `C:\Users\adnan\AppData\Local\Microsoft\WinGet\Packages\OCaml.opam_Microsoft.Winget.Source_8wekyb3d8bbwe\`
+  and updated the *user* PATH, but an already-running shell keeps a cached environment.
+  Prepend that directory in every command, or start a fresh shell.
+- **Do not pipe `opam` through `2>&1` in PowerShell.** It wraps stderr lines in a
+  `NativeCommandError` and sets `$?` to false even on exit 0. A future session will read that
+  as a failure. Let stderr flow normally; it is captured anyway.
+- Windows **Developer Mode is off**. opam noted it only enables symlinks without elevation and
+  is not required. Not currently a problem.
+- The switch is a **local switch** at the repo root, so `_opam/` sits in the working tree.
+  Already gitignored.
+
 ### 0.2 Prove it
 
 - [ ] `dune build` succeeds on a trivial `lib/` + `test/` skeleton
-- [ ] A Bonsai hello-world page builds and **renders in a browser**
+- [ ] ~~A Bonsai hello-world page builds and renders in a browser~~ — **impossible on this
+      toolchain**, see findings. Replace with whatever the resolution in "Open questions" picks.
 
 ### 0.3 Exit criterion
 
@@ -726,7 +796,46 @@ once `.mli`s and tests are counted.
 
 ## Open questions / blocked
 
-Nothing blocked yet. Add items here the moment a human decision is needed.
+### 🚧 BLOCKING — must be resolved before Phase 1
+
+**Two of the four settled decisions are mutually incompatible, and Phase 0 proved it.**
+
+- "Native Windows opam" (user's explicit choice, made against a WSL recommendation)
+- "Core library **and** Bonsai UI" (user's explicit choice, made against a core-only recommendation)
+
+Native Windows opam cannot host either `Core` or `Bonsai`. One of these decisions has to give.
+**This is a human call — do not pick unilaterally.** The options, with what each costs:
+
+| option | keeps | loses | effort |
+|---|---|---|---|
+| **WSL2 / devcontainer** | Core, Bonsai, `expect_test_helpers_core`, the entire plan as approved | native Windows | ~20 min install |
+| **Base instead of Core, no Bonsai** | native Windows, all of Phases 1–5 locally | Core idiom, Bonsai, `Fdeque`, `expect_test_helpers_core` | none |
+| **Base locally, Core+Bonsai in CI only** | native Windows editing | a split configuration: local tests and CI test *different libraries*. Rejected as worse than either alternative unless someone argues otherwise. | medium |
+
+Notes for whoever decides:
+
+- **`Base` is still Jane Street's own library**, and `ppx_jane`, `ppx_expect`, and
+  `base_quickcheck` — which carry most of the idiom signal — all work natively. A Base-only
+  port is *not* a tutorial-grade fallback.
+- But `Core` specifically is what the plan called part of the deliverable, and `Fdeque`
+  (used by `Undo_history`) lives in Core. A Base path needs a hand-rolled two-list deque —
+  which is ~20 lines and arguably reads *better* to a reviewer than importing one.
+- Bonsai was already the plan's most-cuttable phase (cut order: Phase 7 polish, then Phase 6
+  entirely). Losing it costs less than losing Core.
+- **The plan's fallback B (`js_of_ocaml` + `virtual_dom`, no Bonsai) is also dead.** Checked:
+  `virtual_dom` has no win32 exclusion of its own, but it depends on `core`, so it schedules
+  `base_bigstring.v0.16.0` — the exact package whose mingw compile failed. **Fallbacks A, B,
+  and C all assumed the core library builds locally. It does not.** That is why this is a
+  blocking question rather than a fallback selection.
+- ⚠️ **`opam install --dry-run` compiles nothing.** It reports what the *solver* would
+  schedule, and the solver happily schedules packages that then fail to build. A dry-run
+  "Done." is not evidence that anything works. This misled the analysis once already —
+  verify with a real install before believing a green dry-run.
+- What native Windows actually leaves us: `Base` + `ppx_jane` + `ppx_expect` +
+  `base_quickcheck` + `yojson` + raw `js_of_ocaml` with **no** `virtual_dom` and **no**
+  `Core`. Enough for Phases 1–5 with a hand-rolled deque; not enough for any Vdom-based UI.
+
+### Non-blocking
 
 - [ ] **Symbaroum to-hit formula** — `TN = Accurate_att + (10 − Defense_def)` clamped to `[1,19]`
       is a reconstruction, reasonably but not fully confident against the core book. Verify
