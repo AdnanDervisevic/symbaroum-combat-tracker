@@ -30,14 +30,18 @@ them**. This file is the only continuity. Trust it over any recollection.
 ## Current status
 
 ```
-Phase:        0 — Toolchain spike — RUN, AND IT FAILED INFORMATIVELY. BLOCKED ON A HUMAN DECISION.
-Last session: 2026-08-22 — opam 2.5.2 + OCaml 5.2.0 local switch installed and working.
-              PROVED: `core` and `bonsai` CANNOT be installed on native Windows opam.
-              `base`, `ppx_jane`, `ppx_expect`, `base_quickcheck`, `yojson`,
-              `ppx_yojson_conv`, `dune`, `js_of_ocaml` all install fine.
-Next action:  RESOLVE THE BLOCKER IN "Open questions" BELOW. Two of the four settled
-              decisions (native Windows opam / Core + Bonsai) are mutually incompatible.
-              Do NOT start Phase 1 until a human picks a direction.
+Phase:        0 — Toolchain spike — RESTARTING ON WSL2. Blocker resolved; awaiting a reboot.
+Last session: 2026-08-22 — Native Windows opam proved unable to host `core` or `bonsai`
+              (see §0.1b). Human resolved the contradiction: **use WSL2**, which restores
+              the full approved plan. `wsl --install --no-distribution` succeeded and
+              enabled Virtual Machine Platform. **A REBOOT IS REQUIRED** before WSL2 can
+              start — it had not happened when this was written.
+Next action:  1. Confirm WSL2 works:  wsl --status   (must not say "virtualisation is not
+                 enabled"). If it still complains, the reboot has not happened yet — stop
+                 and ask for one.
+              2. Install Ubuntu:      wsl --install -d Ubuntu
+              3. Re-run Phase 0 §0.1 INSIDE Ubuntu, not on Windows. See §0.1c.
+              Do NOT start Phase 1 until a Bonsai hello-world renders.
 ```
 
 ---
@@ -81,7 +85,10 @@ of rationale.
 | 2026-08-22 | **`master` is untouched** | The live Vercel deployment and its real user data (`sct.v1.*` localStorage keys) stay working throughout. |
 | 2026-08-22 | Split the plan's single `opam install` into three transactions | opam rolls back a whole failed transaction. One combined install would have reported "something failed" instead of "the core is fine, Bonsai is not" — which is the exact distinction the four fallbacks are keyed on. This is why we know precisely where the wall is. |
 | 2026-08-22 | **`bonsai_web` is not an opam package** | It is a *library* inside the `bonsai` package. The plan's install line named it as a package; that line is wrong. Corrected in §0.1. |
-| 2026-08-22 | **CONTRADICTION FOUND — unresolved.** Native Windows opam cannot host Core or Bonsai. | See "Phase 0 findings" and "Open questions". This is the first time the plan has been proven wrong about something load-bearing. |
+| 2026-08-22 | **CONTRADICTION FOUND** (resolved two rows below). Native Windows opam cannot host Core or Bonsai. | See "Phase 0 findings" and "Open questions". This is the first time the plan has been proven wrong about something load-bearing. |
+| 2026-08-22 | **RESOLVED: use WSL2. This supersedes the "native Windows opam" decision above.** | Asked the human, who chose WSL2 over the Base-instead-of-Core alternative. This restores the plan exactly as approved — `Core`, `Bonsai`, `expect_test_helpers_core`, `virtual_dom`, `Fdeque` all become available again. Nothing else in this file needs rethinking; only Phase 0 gets re-run, inside Ubuntu. |
+| 2026-08-22 | The native Windows opam switch (`_opam/` at the repo root) is **abandoned, not deleted** | It is gitignored and costs nothing to leave. Deleting it is a Phase 8 tidy-up, not a blocker. Note it holds no `core`, so it cannot be reused. |
+| 2026-08-22 | WSL was already present; only **Virtual Machine Platform** was disabled | `wsl --install --no-distribution` enabled it and returned success, but the change **needs a reboot**. `HypervisorPresent` reads `True` while `VirtualizationFirmwareEnabled` reads `False` — that is the normal masked reading from inside a running hypervisor, **not** a firmware problem. Don't send anyone into the BIOS over it. |
 
 ---
 
@@ -174,11 +181,49 @@ use `ppx_expect` with plain sexp printing instead of `Expect_test_helpers_core.p
 - The switch is a **local switch** at the repo root, so `_opam/` sits in the working tree.
   Already gitignored.
 
+### 0.1c Redo of §0.1, inside WSL2 — THIS IS THE LIVE CHECKLIST
+
+§0.1 above is **dead**; it documents the native Windows attempt and is kept only as evidence.
+Everything below runs **inside Ubuntu**, not in PowerShell.
+
+**Prerequisites (Windows side, one time):**
+
+- [x] `wsl --install --no-distribution` → "The requested operation is successful. Changes will
+      not be effective until the system is rebooted." Virtual Machine Platform is now enabled.
+- [ ] **REBOOT.** Until this happens `wsl --status` says *"WSL2 is unable to start since
+      virtualisation is not enabled on this machine."* That message is about the pending
+      feature enablement, **not** the firmware. Do not send anyone into the BIOS.
+- [ ] `wsl --status` shows no virtualisation complaint
+- [ ] `wsl --install -d Ubuntu` — sets a UNIX username/password interactively. **This prompts,
+      so it cannot run from a non-interactive tool shell; a human runs it in a terminal.**
+
+**Inside Ubuntu:**
+
+- [ ] `sudo apt update && sudo apt install -y opam build-essential pkg-config m4 unzip curl git`
+- [ ] `opam init --bare --yes --disable-sandboxing`
+      (`--disable-sandboxing` because bubblewrap is unreliable under WSL2)
+- [ ] Work from the repo. It is reachable at `/mnt/c/Users/adnan/symbaroum-combat-tracker`,
+      **but do not build there** — `/mnt/c` is 9p-mounted and pathologically slow for dune,
+      and a local switch on it will crawl. Either `git clone` into the Linux filesystem
+      (`~/symbaroum-combat-tracker`) and push/pull between the two, or accept the slowness
+      deliberately. **Decide this and record it as a decision-log row before proceeding.**
+- [ ] `opam switch create . 5.2.0 --yes --no-install`
+- [ ] `eval $(opam env)`
+- [ ] `opam install -y core ppx_jane base_quickcheck expect_test_helpers_core yojson ppx_yojson_conv`
+- [ ] `opam install -y js_of_ocaml js_of_ocaml-ppx virtual_dom`
+- [ ] `opam install -y bonsai`  ← **note: NOT `bonsai_web`**, which is a library inside this
+      package, not a package. Kept as three transactions so a Bonsai failure does not roll
+      back and mask the core result — that split is what made the last spike diagnostic.
+- [ ] Record the **exact resolved versions** (`opam list core bonsai js_of_ocaml ocamlformat`)
+      here. The plan requires pinning `bonsai` and following `bonsai/examples/` from that
+      same release tag, because the API churned (Proc style → Cont style) and public docs lag.
+- [ ] `_opam/` and `_build/` already gitignored — confirm they still are in the clone
+
 ### 0.2 Prove it
 
 - [ ] `dune build` succeeds on a trivial `lib/` + `test/` skeleton
-- [ ] ~~A Bonsai hello-world page builds and renders in a browser~~ — **impossible on this
-      toolchain**, see findings. Replace with whatever the resolution in "Open questions" picks.
+- [ ] A Bonsai hello-world page builds and renders in a browser — **restored**, now that WSL2
+      makes Bonsai available again. This is the real Phase 0 exit gate.
 
 ### 0.3 Exit criterion
 
@@ -796,44 +841,31 @@ once `.mli`s and tests are counted.
 
 ## Open questions / blocked
 
-### 🚧 BLOCKING — must be resolved before Phase 1
+### ✅ RESOLVED — the toolchain contradiction (was blocking)
 
-**Two of the four settled decisions are mutually incompatible, and Phase 0 proved it.**
+Two of the four settled decisions were mutually incompatible: **"native Windows opam"** and
+**"Core library *and* Bonsai UI"**. Phase 0 proved native Windows opam cannot host either
+`Core` or `Bonsai` (§0.1b has the mechanism and the evidence).
 
-- "Native Windows opam" (user's explicit choice, made against a WSL recommendation)
-- "Core library **and** Bonsai UI" (user's explicit choice, made against a core-only recommendation)
+**The human chose WSL2.** That keeps the plan exactly as approved and discards only the
+native-Windows constraint. Nothing downstream of Phase 0 changes.
 
-Native Windows opam cannot host either `Core` or `Bonsai`. One of these decisions has to give.
-**This is a human call — do not pick unilaterally.** The options, with what each costs:
-
-| option | keeps | loses | effort |
-|---|---|---|---|
-| **WSL2 / devcontainer** | Core, Bonsai, `expect_test_helpers_core`, the entire plan as approved | native Windows | ~20 min install |
-| **Base instead of Core, no Bonsai** | native Windows, all of Phases 1–5 locally | Core idiom, Bonsai, `Fdeque`, `expect_test_helpers_core` | none |
-| **Base locally, Core+Bonsai in CI only** | native Windows editing | a split configuration: local tests and CI test *different libraries*. Rejected as worse than either alternative unless someone argues otherwise. | medium |
-
-Notes for whoever decides:
+Kept for the record, because the reasoning is worth not re-deriving:
 
 - **`Base` is still Jane Street's own library**, and `ppx_jane`, `ppx_expect`, and
-  `base_quickcheck` — which carry most of the idiom signal — all work natively. A Base-only
-  port is *not* a tutorial-grade fallback.
-- But `Core` specifically is what the plan called part of the deliverable, and `Fdeque`
-  (used by `Undo_history`) lives in Core. A Base path needs a hand-rolled two-list deque —
-  which is ~20 lines and arguably reads *better* to a reviewer than importing one.
-- Bonsai was already the plan's most-cuttable phase (cut order: Phase 7 polish, then Phase 6
-  entirely). Losing it costs less than losing Core.
-- **The plan's fallback B (`js_of_ocaml` + `virtual_dom`, no Bonsai) is also dead.** Checked:
-  `virtual_dom` has no win32 exclusion of its own, but it depends on `core`, so it schedules
-  `base_bigstring.v0.16.0` — the exact package whose mingw compile failed. **Fallbacks A, B,
-  and C all assumed the core library builds locally. It does not.** That is why this is a
-  blocking question rather than a fallback selection.
+  `base_quickcheck` — which carry most of the idiom signal — all work natively on Windows.
+  A Base-only port would *not* have been a tutorial-grade fallback. It was a real option.
+- `Fdeque` (used by `Undo_history`) lives in Core. A Base path needed a hand-rolled two-list
+  deque — ~20 lines, and arguably reads *better* to a reviewer than importing one.
+- **The plan's fallbacks A, B and C were all dead**, not just unattractive. Each assumed the
+  core library builds locally. Fallback B (`js_of_ocaml` + `virtual_dom`, no Bonsai) fails
+  too: `virtual_dom` has no win32 exclusion of its own but depends on `core`, so it schedules
+  `base_bigstring.v0.16.0` — the exact package whose mingw compile failed. That is why this
+  was a blocking question rather than a fallback selection.
 - ⚠️ **`opam install --dry-run` compiles nothing.** It reports what the *solver* would
   schedule, and the solver happily schedules packages that then fail to build. A dry-run
   "Done." is not evidence that anything works. This misled the analysis once already —
   verify with a real install before believing a green dry-run.
-- What native Windows actually leaves us: `Base` + `ppx_jane` + `ppx_expect` +
-  `base_quickcheck` + `yojson` + raw `js_of_ocaml` with **no** `virtual_dom` and **no**
-  `Core`. Enough for Phases 1–5 with a hand-rolled deque; not enough for any Vdom-based UI.
 
 ### Non-blocking
 
