@@ -226,8 +226,11 @@ switch live in the Linux filesystem.** So:
 
 - [ ] **HUMAN STEP (needs the sudo password):**
       `sudo apt update && sudo apt install -y build-essential m4 unzip pkg-config bubblewrap rsync curl git ca-certificates libgmp-dev zlib1g-dev opam`
-- [ ] `opam init --bare --yes --disable-sandboxing`
-      (`--disable-sandboxing` because bubblewrap is unreliable under WSL2)
+- [ ] `opam init --bare --yes --shell-setup` — **sandboxing stays ON.** The earlier note here
+      said to pass `--disable-sandboxing` "because bubblewrap is unreliable under WSL2". That
+      was received wisdom, and it is wrong on this kernel: bubblewrap was tested directly
+      (`bwrap --unshare-all --ro-bind / / ... /bin/true`) and works, with
+      `max_user_namespaces=63276`. Do not weaken the sandbox without re-testing.
 - [ ] `opam switch create sct 5.2.0 --yes --no-install`  ← named, not local
 - [ ] `eval $(opam env --switch=sct --set-switch)`
 - [ ] `opam install -y core ppx_jane base_quickcheck expect_test_helpers_core yojson ppx_yojson_conv`
@@ -449,7 +452,7 @@ negative toughness.
 
 **`Undo_history`** kills two bugs: `redo`
 ([usePersistentHistory.ts:112](src/hooks/usePersistentHistory.ts:112)) appends to `past` with
-**no `slice(-50)`**, so ping-pong grows it unboundedly; and the dedupe at line 84 is JS
+**no `slice(-50)`**, so ping-pong grows it unboundedly; and the dedupe at line 83 is JS
 *reference* equality, which never fires for a fresh object literal — so every keystroke in a
 note field burns a slot and 50 entries evaporate in one sentence.
 
@@ -740,9 +743,9 @@ One named test per fixed bug, with the old wrong behaviour in a comment above th
 | [ ] | `test_npc_naming_survives_removal` | live count → duplicate "Goblin 3" ([App.tsx:231](src/App.tsx:231)) |
 | [ ] | `test_npc_preset_attributes_are_kept` | `addNpc` silently drops `attributes` ([App.tsx:246](src/App.tsx:246)) |
 | [ ] | `test_sort_preserves_round` | [App.tsx:340](src/App.tsx:340) resets round to 1 |
-| [ ] | `test_delete_character_repairs_cursor` | [App.tsx:112](src/App.tsx:112) prunes members, leaves `turnIndex` |
+| [ ] | `test_delete_character_repairs_cursor` | [App.tsx:114](src/App.tsx:114) prunes members, leaves `turnIndex` |
 | [ ] | `test_redo_respects_capacity` | `redo` never slices `past` ([usePersistentHistory.ts:112](src/hooks/usePersistentHistory.ts:112)) |
-| [ ] | `test_typing_a_note_costs_one_undo` | reference-identity dedupe ([usePersistentHistory.ts:84](src/hooks/usePersistentHistory.ts:84)) |
+| [ ] | `test_typing_a_note_costs_one_undo` | reference-identity dedupe ([usePersistentHistory.ts:83](src/hooks/usePersistentHistory.ts:83)) |
 | [ ] | `test_import_rejects_unknown_version` | `version` never compared to 1 ([exportImport.ts:44](src/utils/exportImport.ts:44)) |
 | [ ] | `test_import_repairs_out_of_range_turn_index` | blind cast after the version check |
 | [ ] | `test_difficulty_with_zero_defense_party` | `npcDefense / pcDefense` → `Infinity` ([EncounterPanel.tsx:19](src/components/panels/EncounterPanel.tsx:19)) |

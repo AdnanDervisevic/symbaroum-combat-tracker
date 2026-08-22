@@ -1,0 +1,6 @@
+(library
+ (name symbaroum)
+ (public_name symbaroum)
+ (libraries core)
+ (preprocess
+  (pps ppx_jane)))
