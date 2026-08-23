@@ -30,14 +30,15 @@ them**. This file is the only continuity. Trust it over any recollection.
 ## Current status
 
 ```
-Phase:        1 COMPLETE - scalars and ids. **Phase 2 is next and unblocked.**
-Last session: 2026-08-23 - 17 scalar modules, every one with a full `.mli`, plus 10 test
-              files. All four checks green: @fmt, -p symbaroum, runtest, build.
-              `dune promote` confirmed working on ext4 (it was the reason for the move).
-              Plan corrections found while building, all recorded in the decisions log:
-              `Resistance` has **6** bands, not 4 (Mighty and Legendary exist);
-              `Core.String_id` already does what the plan's hand-rolled
-              `Identifiable.Make` would have; `Armor` must keep the raw text.
+Phase:        2 COMPLETE - data port + normalization. **Phase 3 is next and unblocked.**
+Last session: 2026-08-23 - all 86 monster presets and the 4 shipped player characters
+              ported, with a golden expect test printing every one. The Defense
+              question is RULED and closed (see the decisions log): the stored field
+              is a **modifier**, uniformly, everywhere. 74 of 79 presets are legal
+              under that reading; the other 5 and the 7 with no defence at all derive
+              from Quick and say so in a `Caveat.t`. New modules: `caveat`,
+              `initiative`, `monster_preset`, `monster_presets`, `monster_presets_data`
+              (generated), `character`, `default_roster`.
               THE REPO IS at `~/symbaroum-combat-tracker` (ext4, in WSL2). The tree at
               `C:\Users\adnan\symbaroum-combat-tracker` is STALE at f7662d0 - never commit
               to it. Windows reaches the live repo at
@@ -45,12 +46,9 @@ Last session: 2026-08-23 - 17 scalar modules, every one with a full `.mli`, plus
               Pinned: ocaml 5.2.0, core v0.16.2, bonsai v0.16.0 (**Proc style**),
               js_of_ocaml 5.9.1, dune 3.23.1, ocamlformat 0.29.0.
               `virtual_dom` pins the train to v0.16 - do not bump `core` to v0.17.
-Next action:  Start **Phase 2 - data port + normalization**. First task: `monster_preset.ml`
-              + `.mli`, then generate `monster_presets.ml` from `src/data/defaultMonsters.ts`
-              (86 presets). **Read the Defense open question below before porting the
-              `defense` field** - it needs a human ruling, and 29 of the 86 presets are
-              still unexplained. Build from the repo root inside WSL. Green means all
-              four of:
+Next action:  Start **Phase 3 - encounter, commands, undo**. First task: `combatant.ml`,
+              then `turn_order.ml` (the nonempty zipper), then `encounter.ml`. Build from
+              the repo root inside WSL. Green means all four of:
                 dune build @fmt && dune build -p symbaroum && dune runtest && dune build
 ```
 
@@ -113,6 +111,12 @@ of rationale.
 | 2026-08-23 | `Dice.distribution` lands in Phase 1, not Phase 5 | The plan listed "parser + pmf" under `dice.ml` while putting `Pmf` in `model/`. Exact convolution over a support of at most `count * sides` values needs no `Pmf` type, so `Dice` returns `(int * float) list` and Phase 5's `Pmf.of_dice` will wrap it. Keeps `Dice` self-contained and gives the 2d6 closed-form anchor a home now. |
 | 2026-08-23 | The pain threshold is checked against **post-armour, pre-clamp** damage | Two candidate quantities: what got through armour, and what the target could actually absorb before reaching zero. They differ only on a lethal blow, and a combatant at zero toughness is *down*, not prone -- so the cap would change no outcome while making the rule harder to state. Recorded in `pain_threshold.mli` and pinned by an expect test, so the choice is visible rather than accidental. |
 | 2026-08-23 | `names.ml` in the plan is `name.ml` here | Singular reads better as a type module, and the type is `Name.t`. No other change. |
+| 2026-08-23 | **RULED: the `defense` field is a MODIFIER, everywhere.** The roll-under target is `10 - defense`. | The human's call, and the data agrees. Counting all 86 presets, the modifier reading is legal for **74 of the 79** that carry the field; the 5 exceptions are the absolute-target spelling. It is also the only reading under which the *shipped player characters* are legal: Vigoi and Ymma store `defense: 0`, which as a modifier is a target of exactly 10 -- average, which is precisely what their "Placeholder stats" note means -- and as an absolute target is `0`, outside `Defense.t`'s range and the direct source of the `Infinity` in the old heuristic. This supersedes the earlier "29 unexplained" analysis, which was measuring residuals against `10 - qui` rather than asking whether `10 - defense` is a legal target. |
+| 2026-08-23 | Where the modifier reading fails, **derive from Quick and record a `Caveat.t`** | 12 presets need this: 5 whose stored number is not a legal modifier, 7 with no `defense` field at all. Quick is present in **all 86** presets, so the fallback is always available. `defense_raw` keeps the discarded number and `Defense_reading.t` records which path ran, so the golden test prints the substitution. Worth noting what the dump shows: for 3 of the 5, stored and derived are the *same number*, because those presets store the target and `of_quick` recovers exactly it. |
+| 2026-08-23 | **The ledger's "7 presets have all four stat fields null" was half wrong** | Counted directly: the 7 do have `toughness`, `defense`, `armor` and `painThreshold` null -- but their **attributes are complete**. `acc` is null in **0** presets and `qui` in **0**, not "79 of 86 carry acc". So every preset gets an attack profile, and only `toughness` is genuinely missing. 79 of 86 are modellable, the 7 blocked solely by toughness. |
+| 2026-08-23 | The generated data module is a **dumb transcription**; all judgement lives in `Monster_preset.of_raw` | `monster_presets_data.ml` holds only wire types (`int option`, `string option`, `(string * int option) list`) so it can be diffed against the TypeScript line by line. Generated by `scripts/gen_monster_presets.py`. Splitting it from the hand-written `monster_presets.ml` also breaks the dependency cycle that a single generated module would have had with `Monster_preset.Raw`. |
+| 2026-08-23 | `Character.t` is a **public record**, not `private` | The one deliberate exception to the rest of the library. `private` exists to force construction through a constructor that can reject an illegal combination -- and there is none here: every field is already a type that cannot hold a bad value, and no invariant relates two fields. Sealing it would buy nothing and cost the functional-update syntax the Phase 3 commands are written with. |
+| 2026-08-23 | Added `caveat.ml` and `initiative.ml`, neither in the plan | `Caveat.t` was scheduled for Phase 5, but Phase 2 is where most caveats are *discovered*, so it is one shared vocabulary rather than one type per phase. `Initiative.t` bounds `0 .. 99` a field the React app coerces with `Number(...) \|\| 0`, where a negative value silently reorders the descending sort. |
 | 2026-08-23 | **`dune build -p symbaroum` does not catch dev-profile warnings** | `bounded_int.mli` passed the release build and failed `dune build` with warning 67 (unused functor parameter; fixed with `Make (_ : Arg)`). The release profile relaxes warnings, so a green `-p` build proves the core is JS-free and proves nothing about warnings. This is why "green" means all four checks and is never shorthand for any one of them. |
 
 ---
@@ -461,41 +465,37 @@ floor, where the exception is asserted explicitly.
 
 ---
 
-## Phase 2 — Data port + normalization  ⏱ 1 day
+## Phase 2 — Data port + normalization  ⏱ 1 day — ✅ COMPLETE (2026-08-23)
 
-- [ ] `monster_preset.ml` + `.mli`
-- [ ] Generate `monster_presets.ml` from [`src/data/defaultMonsters.ts`](src/data/defaultMonsters.ts) (**86** presets — the plan said 84; verified count is 86)
-- [ ] Port [`src/data/defaultCharacters.ts`](src/data/defaultCharacters.ts) → `default_roster.ml`
-- [ ] **Golden expect test dumping all 86 normalized presets in one `[%expect]`**, so the
-      Defense reconciliation lands as a reviewable diff rather than a silent rewrite
-- [ ] `dune runtest` green
+- [x] `monster_preset.ml` + `.mli` — plus `caveat.ml` and `initiative.ml`, neither in the plan
+- [x] Generate `monster_presets_data.ml` from [`src/data/defaultMonsters.ts`](src/data/defaultMonsters.ts)
+      (**86** presets) via [`scripts/gen_monster_presets.py`](scripts/gen_monster_presets.py),
+      with the hand-written `monster_presets.ml` as the seam that normalizes them
+- [x] Port [`src/data/defaultCharacters.ts`](src/data/defaultCharacters.ts) → `default_roster.ml`,
+      which needed `character.ml` brought forward from Phase 3
+- [x] **Golden expect test dumping all 86 normalized presets in one `[%expect]`** —
+      [`test/test_monster_presets.ml`](test/test_monster_presets.ml). Each row reads
+      `stored -> target (how)`, so the Defense reconciliation is a line-by-line diff.
+- [x] `dune runtest` green
 
-### The two data problems — resolve these honestly, do not paper over them
+### The two data problems — RESOLVED
 
-**1. The preset `defense` field is internally inconsistent, and it becomes load-bearing.**
-Verified in the source data:
+**1. The `defense` field is a modifier.** Ruled by the human, and the data agrees. See the
+decisions log for the full argument; the short version is that `target = 10 - defense` is
+legal for 74 of the 79 presets that carry the field, and it is the *only* reading under which
+the four shipped player characters are legal at all.
 
-```
-Spring Elf:     qui: 13, defense: -3   // a MODIFIER (10 − qui)
-Servant Daemon: qui: 15, defense: 15   // an absolute roll-under TARGET
-```
+| reading | count |
+|---|---|
+| `Stored_modifier` — the stored number used as-is | 74 |
+| `Derived_from_quick` — stored number illegal (5) or absent (7) | 12 |
+| `Unknown` — neither available | 0 |
 
-Both sit in the same `number`-typed array. Today nothing consumes `defense` but a ratio, so
-it does not matter. **The moment Defense becomes a to-hit target it matters enormously.**
-`Defense.t = private int` in `1..20` makes the two structurally distinguishable at the
-constructor; the golden test above makes the reconciliation reviewable.
-Also in that file, **verified 2026-08-22 by counting**: there are **86** presets, not 84.
-`armor` is a bare integer in **73**, dice (`1D4`/`1D8`) in **3**, and `null` in **10** — while
-PCs use `'Light (d4)'`. **7** presets have all four stat fields `null` and must be excluded
-from the model with a `Caveat.t` rather than defaulted.
-
-**2. The app has no weapon or damage data at all.** The to-hit side is grounded — **79 of 86**
-presets carry `acc`. Only the damage die is a guess. Use the existing `resistance` field as
-the prior (`Weak → 1d6`, `Ordinary → 1d8`, `Challenging → 1d10`, `Strong → 1d12`), mark it
-`Estimated_from_resistance` in `Attack_profile.source`, make it editable in the UI, and
-surface it in `caveats`. **Never let an estimate masquerade as data.**
-
----
+**2. Damage dice are still estimated**, from the `resistance` band, tagged
+`Estimated_from_resistance`, and surfaced as `Caveat.Damage_die_estimated`. Unchanged from the
+plan except that the estimate now reaches **all 86** presets rather than 79 — see the third
+decisions-log row above; every preset has a complete attribute block, so every preset gets an
+Accurate score. **7** presets remain unmodellable, blocked solely by a missing `toughness`.
 
 ## Phase 3 — Encounter, commands, undo  ⏱ 2–3 days
 
@@ -1021,43 +1021,17 @@ Kept for the record, because the reasoning is worth not re-deriving:
       is a reconstruction, reasonably but not fully confident against the core book. Verify
       against the actual rules text if a copy is available. Prone and flanking modifiers are
       **unverified**. Until verified, `doc/model.md` must say so plainly.
-- [ ] **Preset `defense` semantics — ANALYSED 2026-08-22, needs a human ruling.**
+- [x] **Preset `defense` semantics — RULED 2026-08-23. Closed.** The field is a **modifier**;
+      the target is `10 - defense`. Applied uniformly to presets, player characters and the
+      UI defaults. See the decisions log and Phase 2 above.
 
-      The plan recorded this as "Spring Elf stores a modifier, Servant Daemon stores a target."
-      That understates it. Full analysis of all presets (no toolchain needed — pure data):
-
-      | classification | count | rule |
-      |---|---|---|
-      | modifier | 36 | `defense == 10 − qui` |
-      | absolute target | 8 | `defense == qui` |
-      | modifier + armour | 6 | `defense == 10 − qui + armor` |
-      | **unexplained** | **29** | matches no rule tried |
-      | all four stat fields `null` | 7 | no data at all |
-
-      **The residual does not track armour**, so "armour is folded in" is refuted, not merely
-      unproven: residual `+2` occurs at armour 2, 3 and 4; residual `+4` at armour 3, 4, 7, 8
-      and 10. Extremes: Queen's Ranger −7, Sakofal +9, Kvarek and Niha +14.
-
-      **Conclusion: the stored `defense` field is not a reliable datum.** It was transcribed
-      from statblocks under at least three conventions, plus errors. No single rule recovers it.
-
-      **Recommendation (not yet ratified — this is the human call the plan flagged):**
-      derive Defense canonically from `qui` and **discard the stored field**, keeping it as
-      `defense_raw` purely so the Phase 2 golden test prints old → new and the reconciliation
-      is a reviewable diff rather than a silent rewrite.
-
-      Why `qui`: it is present and internally consistent for all 79 presets that have stats;
-      Defense derives from Quick in Symbaroum; and it already explains the two *coherent*
-      spellings — a preset storing `-3` at `qui: 13` is storing the pre-computed attacker
-      modifier `10 − qui`, and one storing `15` at `qui: 15` is storing the trait itself.
-      Same quantity, two spellings. Canonicalise on the trait, since `Defense.t = private int`
-      in `1..20` (the plan's design) *is* the trait.
-
-      Keep armour as separate damage reduction, which the model needs anyway — folding it into
-      Defense would double-count it.
-
-      The 7 all-`null` presets get no attack profile and must be excluded from analysis with a
-      `Caveat.t`, not defaulted. Never let a default masquerade as data.
+      The 2026-08-22 analysis that reported "29 unexplained" was asking the wrong question. It
+      measured the stored number against `10 - qui` and against `10 - qui + armor` and counted
+      residuals. But the port does not need `defense` to *agree* with `qui` — it needs
+      `10 - defense` to be a legal roll-under target. It is, for 74 of the 79 presets that
+      have the field. Kept here because the mistake is the instructive part: a residual
+      analysis answers "is this consistent with my model of how it was written", which is a
+      historical question, when the question that mattered was "is this usable".
 
 ---
 

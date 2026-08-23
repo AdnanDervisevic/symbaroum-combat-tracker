@@ -1,0 +1,33 @@
+(** Something the analysis had to guess, or could not use at all.
+
+    The app records no weapon data, and seven of the eighty-six shipped presets
+    record no toughness either. Both facts have to reach the reader of a
+    difficulty verdict, because a number computed from an invented damage die is
+    not the same kind of number as one computed from a statblock.
+
+    This is the vocabulary for saying so. It is deliberately shared between the
+    data layer, which discovers most of these while normalizing a preset, and
+    {!Symbaroum.Difficulty}, which reports them alongside a probability -- one
+    list of reasons, accumulated once, rather than a caveat type per phase. *)
+
+open! Core
+
+type t =
+  | No_toughness
+  (** The creature has no maximum toughness, so "down" is undefined for it. *)
+  | Defense_derived_from_quick of int option
+  (** The stored [defense] field was absent, or was not a legal modifier, so
+          defence came from the Quick attribute instead. The argument is what was
+          stored, kept so the substitution is visible rather than silent. *)
+  | Armor_unparsed of string
+  (** {!Symbaroum.Armor.parse} could not read this text, so the model treats
+          the creature as unarmoured. *)
+  | Damage_die_estimated of Resistance.t
+  (** The damage die was invented from the creature's resistance band. See
+          {!Symbaroum.Attack_profile.damage_prior}. *)
+  | No_attack_profile
+  (** No Accurate score, so the creature cannot be given an attack at all. *)
+[@@deriving compare, equal, sexp_of, quickcheck]
+
+(** A sentence for the UI. *)
+val to_string_hum : t -> string
