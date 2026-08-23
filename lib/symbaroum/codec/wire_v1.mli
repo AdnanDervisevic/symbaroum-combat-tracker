@@ -116,7 +116,11 @@ module Bestiary_entry : sig
     ; armor : string
     ; pain_threshold : int option
     ; note : string
-    ; updated_at_ms : int (** [Date.now()], so milliseconds since the epoch *)
+    ; updated_at_ms : float
+      (** [Date.now()], so milliseconds since the epoch -- and a [float], not
+            an [int], because js_of_ocaml's [int] is 32 bits and 1.7e12 does not
+            fit in one. JSON numbers are doubles anyway, and a double holds this
+            exactly. The native tests would never have caught it. *)
     }
   [@@deriving compare, equal, sexp_of]
 
@@ -126,7 +130,7 @@ end
 module History_entry : sig
   type t =
     { id : string
-    ; timestamp_ms : int
+    ; timestamp_ms : float
     ; label : string
     ; encounter : Encounter.t
     }

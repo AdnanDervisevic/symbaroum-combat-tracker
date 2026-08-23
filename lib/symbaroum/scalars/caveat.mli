@@ -31,7 +31,7 @@ type t =
           model that refused to guess here would report that every party loses
           every fight, which is not a cautious answer but a useless one -- so it
           guesses, and says so, which is the whole purpose of this type. *)
-[@@deriving compare, equal, sexp_of, quickcheck]
+[@@deriving compare, equal, sexp, quickcheck]
 
 (** A sentence for the UI. *)
 val to_string_hum : t -> string

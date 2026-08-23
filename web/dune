@@ -1,17 +1,42 @@
+; The Bonsai front end. `(include_subdirs unqualified)` for the same reason as
+; `lib/symbaroum`: `view/` holds the pure Vdom builders and nothing else, and
+; keeping them out of the state machine's directory is the whole point of the
+; split -- but module names stay flat.
+;
+; The layering here is one rule: view/ is pure. A file under view/ produces
+; `Vdom.Node.t`, takes an `inject` when it needs to raise an action, and never
+; touches `Local_storage` or a clock.
+
+(include_subdirs unqualified)
+
 (executable
  (name main)
- (libraries core bonsai.web symbaroum)
+ (libraries core bonsai.web js_of_ocaml symbaroum)
  (preprocess
-  (pps ppx_jane js_of_ocaml-ppx))
+  (pps ppx_jane bonsai.ppx_bonsai js_of_ocaml-ppx))
  (modes js))
 
 ; The web deliverable is a static bundle, not an installable binary, so the
-; package's content is the built JS plus its host page. This also makes
-; `dune build -p symbaroum_web` mean something in CI.
+; package's content is the built JS plus its host page and the stylesheets. This
+; also makes `dune build -p symbaroum_web` mean something in CI.
+
+(rule
+ (targets app.css)
+ (deps %{project_root}/src/App.css)
+ (action
+  (copy %{deps} app.css)))
+
+(rule
+ (targets index.css)
+ (deps %{project_root}/src/index.css)
+ (action
+  (copy %{deps} index.css)))
 
 (install
  (package symbaroum_web)
  (section share)
  (files
   (main.bc.js as www/main.bc.js)
-  (index.html as www/index.html)))
+  (index.html as www/index.html)
+  (app.css as www/app.css)
+  (index.css as www/index.css)))

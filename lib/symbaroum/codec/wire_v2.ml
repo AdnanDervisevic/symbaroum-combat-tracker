@@ -18,7 +18,7 @@ module Attributes = struct
     ; str : int option
     ; vig : int option
     }
-  [@@deriving compare, equal, sexp_of, yojson_of]
+  [@@deriving compare, equal, sexp, yojson_of]
 
   let empty =
     { acc = None
@@ -52,7 +52,7 @@ module Toughness = struct
     { current : int
     ; max : int
     }
-  [@@deriving compare, equal, sexp_of, yojson_of]
+  [@@deriving compare, equal, sexp, yojson_of]
 
   let decoder =
     let open D.Let_syntax in
@@ -68,7 +68,7 @@ module Dice = struct
     ; sides : int
     ; modifier : int
     }
-  [@@deriving compare, equal, sexp_of, yojson_of]
+  [@@deriving compare, equal, sexp, yojson_of]
 
   let decoder =
     let open D.Let_syntax in
@@ -85,7 +85,7 @@ module Attack = struct
     ; damage : Dice.t
     ; estimated_from : string option
     }
-  [@@deriving compare, equal, sexp_of, yojson_of]
+  [@@deriving compare, equal, sexp, yojson_of]
 
   let decoder =
     let open D.Let_syntax in
@@ -110,7 +110,7 @@ module Character = struct
     ; note : string
     ; is_builtin : bool
     }
-  [@@deriving compare, equal, sexp_of, yojson_of]
+  [@@deriving compare, equal, sexp, yojson_of]
 
   let decoder =
     let open D.Let_syntax in
@@ -145,7 +145,7 @@ module Combatant = struct
     type t =
       | Player_character of string
       | Non_player of string option
-    [@@deriving compare, equal, sexp_of]
+    [@@deriving compare, equal, sexp]
 
     (* Hand-written, both directions. One key, so the three fields v1 needed
        cannot contradict each other -- which is the same argument
@@ -187,7 +187,7 @@ module Combatant = struct
     ; attack : Attack.t option
     ; note : string
     }
-  [@@deriving compare, equal, sexp_of, yojson_of]
+  [@@deriving compare, equal, sexp, yojson_of]
 
   let decoder =
     let open D.Let_syntax in
@@ -242,7 +242,7 @@ module Encounter = struct
     ; round : int
     ; name_counter : (string * int) list option
     }
-  [@@deriving compare, equal, sexp_of, yojson_of]
+  [@@deriving compare, equal, sexp, yojson_of]
 
   let decoder =
     let open D.Let_syntax in
@@ -266,9 +266,9 @@ module Bestiary_entry = struct
     ; attributes : Attributes.t
     ; attack : Attack.t option
     ; note : string
-    ; updated_at_ms : int
+    ; updated_at_ms : float
     }
-  [@@deriving compare, equal, sexp_of, yojson_of]
+  [@@deriving compare, equal, sexp, yojson_of]
 
   let decoder =
     let open D.Let_syntax in
@@ -282,7 +282,7 @@ module Bestiary_entry = struct
     and attributes = D.field_or "attributes" Attributes.decoder ~default:Attributes.empty
     and attack = D.field_opt "attack" Attack.decoder
     and note = D.field_or "note" D.string ~default:""
-    and updated_at_ms = D.field_or "updated_at_ms" D.int ~default:0 in
+    and updated_at_ms = D.field_or "updated_at_ms" D.float ~default:0. in
     { id
     ; monster_type
     ; initiative
@@ -301,16 +301,16 @@ end
 module Archive_entry = struct
   type t =
     { id : string
-    ; at_ms : int
+    ; at_ms : float
     ; label : string
     ; encounter : Encounter.t
     }
-  [@@deriving compare, equal, sexp_of, yojson_of]
+  [@@deriving compare, equal, sexp, yojson_of]
 
   let decoder =
     let open D.Let_syntax in
     let%map id = D.field "id" D.string
-    and at_ms = D.field_or "at_ms" D.int ~default:0
+    and at_ms = D.field_or "at_ms" D.float ~default:0.
     and label = D.field_or "label" D.string ~default:""
     and encounter = D.field "encounter" Encounter.decoder in
     { id; at_ms; label; encounter }
@@ -324,7 +324,7 @@ type t =
   ; bestiary : Bestiary_entry.t list
   ; archive : Archive_entry.t list
   }
-[@@deriving compare, equal, sexp_of, yojson_of]
+[@@deriving compare, equal, sexp, yojson_of]
 
 let decoder =
   let open D.Let_syntax in

@@ -12,15 +12,12 @@ module Repairs = struct
   let to_list (t : t) = List.rev !t
 end
 
-let ms_to_time ms =
-  Time_ns.of_span_since_epoch (Time_ns.Span.of_int_ms ms)
-  |> Time_ns.to_int_ns_since_epoch
-  |> Time_ns.of_int_ns_since_epoch
-;;
-
-let time_to_ms time =
-  Time_ns.to_span_since_epoch time |> Time_ns.Span.to_ms |> Float.iround_down_exn
-;;
+(* Milliseconds cross the wire as a [float]. [Time_ns.t] is [Int63]-backed and so
+   is fine everywhere, but a plain [int] is 32 bits under js_of_ocaml and a
+   JavaScript timestamp is about 1.7e12 -- so an [int] here would be silently
+   wrong in the browser and right in every native test. *)
+let ms_to_time ms = Time_ns.of_span_since_epoch (Time_ns.Span.of_ms ms)
+let time_to_ms time = Time_ns.Span.to_ms (Time_ns.to_span_since_epoch time)
 
 (* Every bounded scalar arrives the same way: try the honest constructor, and if
    the value is out of range, saturate and say so. *)

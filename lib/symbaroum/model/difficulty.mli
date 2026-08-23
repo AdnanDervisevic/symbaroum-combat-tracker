@@ -37,7 +37,7 @@ module Label : sig
     | Hard
     | Deadly
     | Overwhelming
-  [@@deriving compare, equal, enumerate, sexp_of]
+  [@@deriving compare, equal, enumerate, sexp]
 
   (** [>= 0.95] Trivial, [0.85] Easy, [0.60] Balanced, [0.35] Hard, [0.15]
       Deadly, below that Overwhelming. Pinned at the boundaries by an expect
@@ -59,7 +59,7 @@ module Method : sig
         ; stderr : float
         ; seed : int
         }
-  [@@deriving compare, equal, sexp_of]
+  [@@deriving compare, equal, sexp]
 
   val to_string_hum : t -> string
 end
@@ -77,7 +77,7 @@ type t =
           number as one computed from a statblock, and this is how the
           difference reaches the reader. *)
   }
-[@@deriving sexp_of]
+[@@deriving compare, equal, sexp]
 
 (** The seed used when none is given, so that the same encounter always produces
     the same number in the UI. *)

@@ -8,12 +8,19 @@
 
     {1 Derived writer, hand-written reader}
 
-    The records here carry [@@deriving yojson_of] and nothing else: encoding is
-    total, so the mechanical direction is the safe one to mechanise, and a
-    hand-written writer for a twelve-field record is boilerplate that can drift
-    from the reader without anybody noticing. Decoding is partial and has to pass
-    through smart constructors, so it is written out -- see
-    {!Symbaroum.Json_decoder} for that argument at length.
+    The records here derive their writer: encoding is total, so the mechanical
+    direction is the safe one to mechanise, and a hand-written writer for a
+    twelve-field record is boilerplate that can drift from the reader without
+    anybody noticing. Decoding is partial and has to pass through smart
+    constructors, so it is written out -- see {!Symbaroum.Json_decoder} for that
+    argument at length.
+
+    They also derive a full sexp round trip, [t_of_sexp] included, which is safe
+    here for the same reason: these are total records with no invariants, so a
+    deriver cannot build one that the domain would reject. It is used by the web
+    layer, where Bonsai's model type wants a sexp round trip and the domain types
+    deliberately have none -- so the model goes out through the wire types and
+    back in through the smart constructors, exactly as a save file does.
 
     The consequence worth stating plainly: {b the deriver picks the JSON shape},
     and in two places the shape it picks is uglier than one would choose by hand.
@@ -52,7 +59,7 @@ module Attributes : sig
     ; str : int option
     ; vig : int option
     }
-  [@@deriving compare, equal, sexp_of, yojson_of]
+  [@@deriving compare, equal, sexp, yojson_of]
 
   val empty : t
   val decoder : t Json_decoder.t
@@ -63,7 +70,7 @@ module Toughness : sig
     { current : int
     ; max : int
     }
-  [@@deriving compare, equal, sexp_of, yojson_of]
+  [@@deriving compare, equal, sexp, yojson_of]
 
   val decoder : t Json_decoder.t
 end
@@ -74,7 +81,7 @@ module Dice : sig
     ; sides : int
     ; modifier : int
     }
-  [@@deriving compare, equal, sexp_of, yojson_of]
+  [@@deriving compare, equal, sexp, yojson_of]
 
   val decoder : t Json_decoder.t
 end
@@ -90,7 +97,7 @@ module Attack : sig
     ; damage : Dice.t
     ; estimated_from : string option
     }
-  [@@deriving compare, equal, sexp_of, yojson_of]
+  [@@deriving compare, equal, sexp, yojson_of]
 
   val decoder : t Json_decoder.t
 end
@@ -115,7 +122,7 @@ module Character : sig
     ; note : string
     ; is_builtin : bool
     }
-  [@@deriving compare, equal, sexp_of, yojson_of]
+  [@@deriving compare, equal, sexp, yojson_of]
 
   val decoder : t Json_decoder.t
 end
@@ -129,7 +136,7 @@ module Combatant : sig
     type t =
       | Player_character of string
       | Non_player of string option
-    [@@deriving compare, equal, sexp_of]
+    [@@deriving compare, equal, sexp]
 
     val yojson_of_t : t -> Yojson.Safe.t
     val decoder : t Json_decoder.t
@@ -150,7 +157,7 @@ module Combatant : sig
     ; attack : Attack.t option
     ; note : string
     }
-  [@@deriving compare, equal, sexp_of, yojson_of]
+  [@@deriving compare, equal, sexp, yojson_of]
 
   val decoder : t Json_decoder.t
 end
@@ -168,7 +175,7 @@ module Encounter : sig
     ; round : int
     ; name_counter : (string * int) list option
     }
-  [@@deriving compare, equal, sexp_of, yojson_of]
+  [@@deriving compare, equal, sexp, yojson_of]
 
   val decoder : t Json_decoder.t
 end
@@ -185,9 +192,9 @@ module Bestiary_entry : sig
     ; attributes : Attributes.t
     ; attack : Attack.t option
     ; note : string
-    ; updated_at_ms : int
+    ; updated_at_ms : float
     }
-  [@@deriving compare, equal, sexp_of, yojson_of]
+  [@@deriving compare, equal, sexp, yojson_of]
 
   val decoder : t Json_decoder.t
 end
@@ -195,11 +202,11 @@ end
 module Archive_entry : sig
   type t =
     { id : string
-    ; at_ms : int
+    ; at_ms : float
     ; label : string
     ; encounter : Encounter.t
     }
-  [@@deriving compare, equal, sexp_of, yojson_of]
+  [@@deriving compare, equal, sexp, yojson_of]
 
   val decoder : t Json_decoder.t
 end
@@ -211,7 +218,7 @@ type t =
   ; bestiary : Bestiary_entry.t list
   ; archive : Archive_entry.t list
   }
-[@@deriving compare, equal, sexp_of, yojson_of]
+[@@deriving compare, equal, sexp, yojson_of]
 
 (** Rejects a version other than {!version}. *)
 val decoder : t Json_decoder.t

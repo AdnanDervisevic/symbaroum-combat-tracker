@@ -6,7 +6,7 @@ type t =
   | Armor_unparsed of string
   | Damage_die_estimated of Resistance.t
   | No_attack_profile
-[@@deriving compare, equal, sexp_of]
+[@@deriving compare, equal, sexp]
 
 let to_string_hum = function
   | No_toughness -> "No toughness recorded, so this creature cannot be modelled."

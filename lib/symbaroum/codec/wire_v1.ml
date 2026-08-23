@@ -164,7 +164,7 @@ module Bestiary_entry = struct
     ; armor : string
     ; pain_threshold : int option
     ; note : string
-    ; updated_at_ms : int
+    ; updated_at_ms : float
     }
   [@@deriving compare, equal, sexp_of]
 
@@ -178,7 +178,7 @@ module Bestiary_entry = struct
     and armor = D.field_or "armor" D.string ~default:""
     and pain_threshold = D.field_opt "painThreshold" D.int
     and note = D.field_or "note" D.string ~default:""
-    and updated_at_ms = D.field_or "updatedAt" D.int ~default:0 in
+    and updated_at_ms = D.field_or "updatedAt" D.float ~default:0. in
     { id
     ; monster_type
     ; initiative
@@ -195,7 +195,7 @@ end
 module History_entry = struct
   type t =
     { id : string
-    ; timestamp_ms : int
+    ; timestamp_ms : float
     ; label : string
     ; encounter : Encounter.t
     }
@@ -204,7 +204,7 @@ module History_entry = struct
   let decoder =
     let open D.Let_syntax in
     let%map id = D.field "id" D.string
-    and timestamp_ms = D.field_or "timestamp" D.int ~default:0
+    and timestamp_ms = D.field_or "timestamp" D.float ~default:0.
     and label = D.field_or "label" D.string ~default:""
     and encounter = D.field "encounter" Encounter.decoder in
     { id; timestamp_ms; label; encounter }

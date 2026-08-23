@@ -12,7 +12,7 @@ module Label = struct
     | Hard
     | Deadly
     | Overwhelming
-  [@@deriving compare, equal, enumerate, sexp_of]
+  [@@deriving compare, equal, enumerate, sexp]
 
   let of_p_win p =
     if Float.(p >= 0.95)
@@ -50,7 +50,7 @@ module Method = struct
         ; stderr : float
         ; seed : int
         }
-  [@@deriving compare, equal, sexp_of]
+  [@@deriving compare, equal, sexp]
 
   let to_string_hum = function
     | Exact_dp { states; rounds; residual } ->
@@ -72,7 +72,7 @@ type t =
   ; method_ : Method.t
   ; caveats : Caveat.t list
   }
-[@@deriving sexp_of]
+[@@deriving compare, equal, sexp]
 
 (* Sides, in the encounter's own order, with the already-down left out: a
    combatant at zero is not in the fight, and counting one would make a wiped

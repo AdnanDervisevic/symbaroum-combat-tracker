@@ -1,24 +1,8 @@
-open! Core
-open! Bonsai_web
+(** The entry point, and nothing else.
 
-(* Phase 0 exit gate. Deliberately the smallest thing that exercises the whole
-   UI toolchain at once: Bonsai's Proc-style [Computation.t], a [Vdom] tree,
-   [ppx_jane] and [js_of_ocaml-ppx] running together, and a link against the
-   [symbaroum] core library -- which proves the domain code and the web code can
-   coexist in one binary before any real UI exists. *)
+    Everything above this is a value: {!App.component} is a
+    [Vdom.Node.t Bonsai.Computation.t], which is a description of a page and not
+    a page. This line is where it becomes one, and it is the only line in the
+    directory that does anything. *)
 
-let component : Vdom.Node.t Bonsai.Computation.t =
-  let { Symbaroum.Version.branch; app } = Symbaroum.Version.upstream in
-  Bonsai.const
-    (Vdom.Node.div
-       [ Vdom.Node.h1 [ Vdom.Node.text "Symbaroum Combat Tracker" ]
-       ; Vdom.Node.p
-           [ Vdom.Node.text
-               [%string
-                 "OCaml port %{Symbaroum.Version.port_version}, tracking %{app} on \
-                  branch %{branch}."]
-           ]
-       ])
-;;
-
-let () = Start.start ~bind_to_element_with_id:"app" component
+let () = Bonsai_web.Start.start ~bind_to_element_with_id:"app" App.component
