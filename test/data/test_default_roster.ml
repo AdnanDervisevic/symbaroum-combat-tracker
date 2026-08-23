@@ -1,53 +1,58 @@
+(** The shipped roster is content, not behaviour.
+
+    The GM edits it -- fills in a sheet that was blank, renames somebody, writes
+    down the defence they actually rolled under last session. So this file checks
+    only what has to hold whatever the numbers say, and nothing else in the suite
+    reads it: the behaviour tests run against [Test_helpers.fixture_roster]
+    instead. Pinning these values anywhere else would mean asserting that nobody
+    has played the game lately. *)
+
 open! Core
-open Expect_test_helpers_core
+open! Symbaroum
 
-(* The four shipped player characters, with the defence reading applied. The
-   point of printing [defense] both ways is that the React file stores the
-   modifier and the UI shows it, while every rules question wants the target. *)
-
-let%expect_test "the shipped roster" =
-  List.iter Symbaroum.Default_roster.all ~f:(fun (c : Symbaroum.Character.t) ->
-    printf
-      "%-10s %-8s T%d/%d  defense %2d (modifier) -> %2d (target)  armor %-12s %s\n"
-      (Symbaroum.Name.to_string c.name)
-      c.role
-      c.toughness.current
-      c.toughness.max
-      (Symbaroum.Character.defense_modifier c)
-      (Symbaroum.Defense.to_int c.defense)
-      c.armor.text
-      (if c.is_builtin then "builtin" else "user"));
+let%expect_test "the shipped roster is well-formed, whatever the numbers say" =
+  let all = Default_roster.all in
+  let ids = List.map all ~f:Character.id in
+  let unique compare xs = not (List.contains_dup xs ~compare) in
+  printf "characters:     %d\n" (List.length all);
+  printf "ids unique:     %b\n" (unique Ids.Character_id.compare ids);
+  printf "names unique:   %b\n" (unique Name.compare (List.map all ~f:Character.name));
+  printf "all builtin:    %b\n" (List.for_all all ~f:Character.is_builtin);
+  (* Load-bearing rather than cosmetic: [Migrate] recovers [is_builtin] from this
+     prefix, because v1 never stored the flag. Renaming an id silently demotes
+     that character on every import of an old save. *)
+  printf
+    "ids prefixed:   %b\n"
+    (List.for_all ids ~f:(fun id ->
+       String.is_prefix (Ids.Character_id.to_string id) ~prefix:"pc_default_"));
+  printf
+    "at full health: %b\n"
+    (List.for_all all ~f:(fun (c : Character.t) -> c.toughness.current = c.toughness.max));
+  printf "reaches Roster: %b\n" (Roster.length Roster.default = List.length all);
   [%expect
     {|
-    Cassimei   Bard     T10/10  defense  8 (modifier) ->  2 (target)  armor Light (d4)   builtin
-    Thalia     Wizard   T10/10  defense  3 (modifier) ->  7 (target)  armor Light (d4)   builtin
-    Vigoi      Warrior  T10/10  defense  0 (modifier) -> 10 (target)  armor Medium (d8)  builtin
-    Ymma       Goblin   T10/10  defense  0 (modifier) -> 10 (target)  armor Light (d4)   builtin |}]
+    characters:     4
+    ids unique:     true
+    names unique:   true
+    all builtin:    true
+    ids prefixed:   true
+    at full health: true
+    reaches Roster: true |}]
 ;;
 
-let%expect_test "a new character is average, not the React default" =
-  (* [buildNewCharacter] in combatLogic.ts sets [defense: 10], which under the
-     modifier reading is a target of 0 -- a roll-under target nobody can fail.
-     The port's default is a modifier of 0, an exactly average target of 10. *)
-  let c =
-    Symbaroum.Character.create_new ~id:(Symbaroum.Ids.Character_id.of_string "pc_1")
-  in
-  print_s
-    [%message
-      ""
-        ~defense_modifier:(Symbaroum.Character.defense_modifier c : int)
-        ~defense_target:(Symbaroum.Defense.to_int c.defense : int)
-        ~react_default_would_be:
-          (Symbaroum.Defense.of_modifier 10 : Symbaroum.Defense.t Or_error.t)];
+(* [defense] on a player character is the target they roll under -- the number on
+   the sheet -- and [Defense.t] holds exactly that. A monster table prints the
+   modifier instead; that reading lives in [Monster_preset] and in [Migrate], and
+   is checked in [test/scalars/test_defense.ml]. The only thing worth asserting
+   here is that the roster went through the sheet reading, which it did if every
+   character survived construction at all: [Defense.of_target] rejects the [0]
+   that an unfilled sheet stores. *)
+let%expect_test "a blank sheet is not a defence" =
+  print_s [%sexp (Defense.of_target 0 : Defense.t Or_error.t)];
   [%expect
     {|
-    ((defense_modifier 0)
-     (defense_target   10)
-     (react_default_would_be (
-       Error (
-         "value out of range"
-         (module_   Symbaroum.Defense)
-         (value     0)
-         (min_value 1)
-         (max_value 20))))) |}]
+    (Error
+     ("value out of range" (module_ Symbaroum.Defense) (value 0) (min_value 1)
+      (max_value 20)))
+    |}]
 ;;

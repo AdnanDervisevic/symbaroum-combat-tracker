@@ -59,7 +59,7 @@ let%expect_test "a fight needs two sides" =
     [ combatant
         ~allegiance:(Player_character (chid "ch_a"))
         ~id:"c1"
-        ~name:"Ymma"
+        ~name:"Alpha"
         ~initiative:10
         ()
     ]
@@ -99,21 +99,33 @@ let%expect_test "a fight needs two sides" =
 ;;
 
 (* The ninth row of the bug ledger. [EncounterPanel.tsx:19] divides the NPC
-   average defence by the party's, and with the two shipped characters whose
-   notes read "Placeholder stats" the party's average rounds to zero -- so the
-   heuristic returns [Infinity] with stock data. Two things stop that here:
-   [Defense.t] cannot be zero, and nothing in the model is a ratio. *)
+   average defence by the party's, so a party whose average defence rounds to
+   zero makes the heuristic return [Infinity]. React reaches that with a blank
+   character sheet: a player character's [defense] is the target they roll
+   under, and an unfilled sheet stores [0].
+
+   Two things stop it here. [Defense.t] has no zero -- a target nobody can fail
+   is not a defence -- so a [0] is refused at the constructor and repaired on
+   import. And nothing in the model is a ratio, so even the lowest legal defence
+   gives a finite answer.
+
+   The party is spelled out here rather than read out of [Default_roster],
+   because what that file says about anybody's defence is the GM's business and
+   should not be this test's premise. *)
 let%expect_test "test_difficulty_with_zero_defense_party" =
-  let roster_pc name =
-    let character =
-      List.find_exn Default_roster.all ~f:(fun c ->
-        String.equal (Name.to_string c.name) name)
-    in
-    Combatant.of_character character ~id:(cid [%string "cmb_%{name}"])
+  print_s [%sexp (Defense.of_target 0 : Defense.t Or_error.t)];
+  let pc n =
+    combatant
+      ~allegiance:(Player_character (chid [%string "ch_%{n#Int}"]))
+      ~id:[%string "cmb_%{n#Int}"]
+      ~name:[%string "Fixture %{n#Int}"]
+      ~initiative:10
+      ~defense:(Or_error.ok_exn (Defense.of_target 1))
+      ()
   in
   let members =
-    [ roster_pc "Vigoi"
-    ; roster_pc "Ymma"
+    [ pc 1
+    ; pc 2
     ; combatant
         ~allegiance:(Non_player (Some (mt "Goblin")))
         ~id:"g1"
@@ -125,7 +137,7 @@ let%expect_test "test_difficulty_with_zero_defense_party" =
   in
   List.iter members ~f:(fun (c : Combatant.t) ->
     printf
-      "  %-10s defence target %d\n"
+      "  %-12s defence target %d\n"
       (Name.to_string c.name)
       (Defense.to_int c.defense));
   let analysis = Option.value_exn (Difficulty.analyze (encounter_of members)) in
@@ -135,24 +147,34 @@ let%expect_test "test_difficulty_with_zero_defense_party" =
   List.iter analysis.caveats ~f:(fun c -> printf "  ! %s\n" (Caveat.to_string_hum c));
   [%expect
     {|
-      Vigoi      defence target 10
-      Ymma       defence target 10
-      Goblin 1   defence target 10
-      Trivial -- 100% win, expect 0.0 casualties, median 2 rounds (1 caveat(s))
+    (Error (
+      "value out of range"
+      (module_   Symbaroum.Defense)
+      (value     0)
+      (min_value 1)
+      (max_value 20)))
+      Fixture 1    defence target 1
+      Fixture 2    defence target 1
+      Goblin 1     defence target 10
+      Easy -- 92% win, expect 0.3 casualties, median 2 rounds (1 caveat(s))
     (Exact_dp
       (states   697)
-      (rounds   28)
-      (residual 7.5920070230495185E-10))
+      (rounds   14)
+      (residual 5.5846560709227333E-10))
       ! No weapon recorded for this combatant; an average attack was assumed. |}]
 ;;
 
-(* The shipped roster against preset monsters, which is the case the app is
-   actually used for -- and the case where every attack on the party's side is
-   invented, because the app records no weapons for anybody. The caveats are the
-   point of the output, not a footnote. *)
-let%expect_test "the shipped party against a preset, caveats and all" =
+(* A whole party against preset monsters, which is the shape the app is actually
+   used in -- and the case where every attack on the party's side is invented,
+   because the app records no weapons for anybody. The caveats are the point of
+   the output, not a footnote.
+
+   The party is [Test_helpers.fixture_roster]; the monsters stay a real preset,
+   because [Npc_draft.of_preset] is part of what this test exercises and the
+   preset table is ported book data rather than anybody's campaign. *)
+let%expect_test "a full party against a preset, caveats and all" =
   let party =
-    List.mapi Default_roster.all ~f:(fun i (c : Character.t) ->
+    List.mapi fixture_roster ~f:(fun i (c : Character.t) ->
       Combatant.of_character c ~id:(cid [%string "pc%{i#Int}"]))
   in
   let robbers =
@@ -172,10 +194,10 @@ let%expect_test "the shipped party against a preset, caveats and all" =
   List.iter analysis.caveats ~f:(fun c -> printf "  ! %s\n" (Caveat.to_string_hum c));
   [%expect
     {|
-    Trivial -- 99% win, expect 1.3 casualties, median 9 rounds (2 caveat(s))
-    method: exact, over 5427 states in 54 rounds (unresolved mass 5.4737470112087294e-10)
-    50% of fights end by round 9
-    90% of fights end by round 15
+    Trivial -- 100% win, expect 0.4 casualties, median 8 rounds (2 caveat(s))
+    method: exact, over 6499 states in 61 rounds (unresolved mass 7.1907324539211e-10)
+    50% of fights end by round 8
+    90% of fights end by round 11
     ! No weapon recorded; damage estimated from the Weak band.
     ! No weapon recorded for this combatant; an average attack was assumed. |}]
 ;;

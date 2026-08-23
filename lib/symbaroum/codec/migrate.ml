@@ -2,9 +2,18 @@ open! Core
 
 let builtin_prefix = "pc_default_"
 
-(* [10 - modifier]. Out of range is not this module's problem; [Domain_conv]
-   clamps it and reports the clamp. *)
-let target_of_modifier modifier = 10 - modifier
+(* The v1 [defense] field has two readings, and which one applies depends on
+   whose sheet the number came from. A player character's is the target the GM
+   reads off the sheet and rolls under. A monster's is the modifier the preset
+   table prints, which is [10 - target]. They are the same quantity written two
+   ways, so v2 keeps one of them -- the target -- and the choice happens here,
+   at the only place that still knows which kind of row it is looking at.
+
+   Out of range is not this module's problem; [Domain_conv] clamps and reports
+   it. That matters for the four shipped characters, two of which v1 stored as
+   [0] while their sheets were still blank. *)
+let of_pc_sheet target = target
+let of_npc_table modifier = 10 - modifier
 
 (* The three spellings of "no attributes" -- missing, [null] and [{}] -- collapse
    here into the one value the domain has. *)
@@ -21,7 +30,7 @@ let character (c : Wire_v1.Character.t) : Wire_v2.Character.t =
   ; role = c.role
   ; initiative = c.initiative
   ; toughness = { current = c.toughness; max = c.toughness }
-  ; defense = target_of_modifier c.defense
+  ; defense = of_pc_sheet c.defense
   ; armor = c.armor
   ; pain_threshold = c.pain_threshold
   ; attributes = attributes c.attributes
@@ -50,7 +59,10 @@ let combatant ~full_health (c : Wire_v1.Combatant.t) : Wire_v2.Combatant.t =
   ; name = c.name
   ; initiative = c.initiative
   ; toughness = { current = c.toughness; max }
-  ; defense = target_of_modifier c.defense
+  ; defense =
+      (match allegiance with
+       | Player_character _ -> of_pc_sheet c.defense
+       | Non_player _ -> of_npc_table c.defense)
   ; armor = c.armor
   ; pain_threshold = c.pain_threshold
   ; prone = c.prone
@@ -76,7 +88,7 @@ let bestiary_entry (e : Wire_v1.Bestiary_entry.t) : Wire_v2.Bestiary_entry.t =
   ; monster_type = e.monster_type
   ; initiative = e.initiative
   ; toughness = { current = e.toughness; max = e.toughness }
-  ; defense = target_of_modifier e.defense
+  ; defense = of_npc_table e.defense
   ; armor = e.armor
   ; pain_threshold = e.pain_threshold
   ; (* The React bestiary entry stores no attributes, so the round trip

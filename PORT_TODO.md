@@ -31,6 +31,11 @@ them**. This file is the only continuity. Trust it over any recollection.
 
 ```
 Phase:        ALL EIGHT COMPLETE. The port is done and green.
+              2026-08-24 - the `defense` reading was CORRECTED by the human; see
+              the decisions log. Player characters store the target, monsters store
+              the modifier. The behaviour tests moved off `Default_roster` and onto
+              `Test_helpers.fixture_roster` at the same time, so that editing a
+              character sheet can no longer turn the suite red.
 Last session: 2026-08-23 - Phases 6 and 7 (the Bonsai UI, done as one pass) and
               Phase 8 (CI, deploy, README). Then a prose cull: every module doc
               comment kept its first paragraph and lost the essay, about 950
@@ -144,6 +149,8 @@ of rationale.
 | 2026-08-23 | **Saving and the difficulty analysis are polled, not edge-triggered** | Both should cost one operation per burst of keystrokes rather than one per character. Polling also removes the plan's monotone request counter for stale analyses -- there is only ever one in flight -- which is the better kind of simplification. |
 | 2026-08-23 | **The NPC form holds strings, and parses once on submit** | Exactly what `npc_draft.mli` already said: the React `NpcDraft` holds what the user typed and `Npc_draft.t` holds what it parsed to. So `Form.t` is all strings -- which is also, conveniently, a Bonsai model without anything having to grow a `t_of_sexp` it should not have. A form that will not parse disables the button rather than producing a draft full of zeroes. |
 | 2026-08-23 | **Deploy goes to GitHub Pages from CI; the live Vercel URL is not touched** | The plan suggested committing the built `public/` to the branch Vercel watches. That branch is `master`, and replacing a live site is a decision rather than a side effect of a green build. CI publishes to Pages, `vercel.json` and `scripts/build_site.sh` are ready for the alternative, and `site/` is gitignored -- a megabyte of generated JavaScript does not belong in the history. |
+| 2026-08-24 | **CORRECTION, superseding the 2026-08-23 ruling below: `defense` is a modifier on a MONSTER table and the roll-under TARGET on a PLAYER CHARACTER sheet.** | The human's call, and it is a fact about the game rather than about the data. The earlier ruling generalised from the wrong observation: the four shipped characters stored `defense: 0`, which is not a legal target, and I concluded the field must therefore be a modifier everywhere. But a `0` on a character sheet means *unfilled*, not *average* -- the human then filled two of them in with `13` and the build broke, which is how this surfaced. The NPC half of the old ruling stands untouched: presets and bestiary rows are still modifiers, still 74 of 79 legal, still falling back to Quick. What changed is `Default_roster`, `Character.create_new`, and the character and PC-combatant branches of `Migrate`. An unfilled sheet is now clamped to 1 and **reported** as a normalization rather than silently reinterpreted as average. `Defense.t` needed no change at all, which is the argument for having stored one canonical value with two named constructors in the first place. |
+| 2026-08-24 | **Behaviour tests run against `Test_helpers.fixture_roster`, not `Default_roster`** | The human's point, and it is the same bug one level up: the shipped roster is *content*, so a test that pins its numbers is asserting that nobody has played the game lately. Editing two character sheets changed expect output in five files. `Default_roster` is now read in exactly one test, and only for invariants that hold whatever the numbers are -- ids unique, all builtin, the `pc_default_` prefix that `Migrate` recovers `is_builtin` from. Everything else uses four NATO-named fixtures nobody has a reason to edit. |
 | 2026-08-23 | **The interface prose was cut by about 950 lines** | Asked for by the human, and right. Every module doc comment kept its first paragraph and lost the essay; three keep a second because it is the pipeline diagram, the to-hit formula or the state encoding rather than an argument. Nothing was lost that was not already in this file, in `doc/model.md` or in the README. Comments are now nine per cent of the tree. |
 | 2026-08-23 | Added `caveat.ml` and `initiative.ml`, neither in the plan | `Caveat.t` was scheduled for Phase 5, but Phase 2 is where most caveats are *discovered*, so it is one shared vocabulary rather than one type per phase. `Initiative.t` bounds `0 .. 99` a field the React app coerces with `Number(...) \|\| 0`, where a negative value silently reorders the descending sort. |
 | 2026-08-23 | **`dune build -p symbaroum` does not catch dev-profile warnings** | `bounded_int.mli` passed the release build and failed `dune build` with warning 67 (unused functor parameter; fixed with `Make (_ : Arg)`). The release profile relaxes warnings, so a green `-p` build proves the core is JS-free and proves nothing about warnings. This is why "green" means all four checks and is never shorthand for any one of them. |
@@ -509,10 +516,13 @@ floor, where the exception is asserted explicitly.
 
 ### The two data problems — RESOLVED
 
-**1. The `defense` field is a modifier.** Ruled by the human, and the data agrees. See the
-decisions log for the full argument; the short version is that `target = 10 - defense` is
-legal for 74 of the 79 presets that carry the field, and it is the *only* reading under which
-the four shipped player characters are legal at all.
+**1. The `defense` field is a modifier on a monster table.** Ruled by the human, and the data
+agrees: `target = 10 - defense` is legal for 74 of the 79 presets that carry the field.
+
+**Corrected 2026-08-24:** this holds for *monsters*. A player character's sheet stores the
+roll-under target directly. The clause that used to sit here -- "it is the only reading under
+which the four shipped player characters are legal at all" -- was the mistake; their `0` meant
+an unfilled sheet, not an average one. See the decisions log.
 
 | reading | count |
 |---|---|
@@ -1162,9 +1172,11 @@ Kept for the record, because the reasoning is worth not re-deriving:
       is a reconstruction, reasonably but not fully confident against the core book. Verify
       against the actual rules text if a copy is available. Prone and flanking modifiers are
       **unverified**. Until verified, `doc/model.md` must say so plainly.
-- [x] **Preset `defense` semantics — RULED 2026-08-23. Closed.** The field is a **modifier**;
-      the target is `10 - defense`. Applied uniformly to presets, player characters and the
-      UI defaults. See the decisions log and Phase 2 above.
+- [x] **Preset `defense` semantics — RULED 2026-08-23, CORRECTED 2026-08-24. Closed.** On a
+      **monster** table the field is a modifier and the target is `10 - defense`. On a
+      **player character** sheet it is the target itself. The 2026-08-23 wording, "applied
+      uniformly to presets, player characters and the UI defaults", was wrong about the
+      second and third of those. See the decisions log.
 
       The 2026-08-22 analysis that reported "29 unexplained" was asking the wrong question. It
       measured the stored number against `10 - qui` and against `10 - qui + armor` and counted

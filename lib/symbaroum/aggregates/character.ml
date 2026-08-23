@@ -21,7 +21,7 @@ let create_new ~id =
   ; role = ""
   ; initiative = Initiative.zero
   ; toughness = Toughness.create_exn ~current:10 ~max:10
-  ; defense = Or_error.ok_exn (Defense.of_modifier 0)
+  ; defense = Or_error.ok_exn (Defense.of_target 10)
   ; armor = Armor.parse "Light (d4)"
   ; pain_threshold = Pain_threshold.no_threshold
   ; attributes = Attributes.empty
@@ -29,5 +29,3 @@ let create_new ~id =
   ; is_builtin = false
   }
 ;;
-
-let defense_modifier t = Defense.to_modifier t.defense

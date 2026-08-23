@@ -14,7 +14,7 @@ open Test_helpers
 let combatant_id character_id = cid ("cmb_" ^ Ids.Character_id.to_string character_id)
 
 let party =
-  List.map [ "pc_default_cassimei"; "pc_default_vigoi"; "pc_default_ymma" ] ~f:(fun id ->
+  List.map [ "pc_alpha"; "pc_charlie"; "pc_delta" ] ~f:(fun id ->
     let id = chid id in
     id, combatant_id id)
 ;;
@@ -39,31 +39,29 @@ let%expect_test "a fight, from the top" =
       ; Adjust { id = cid "cmb_r1"; amount = amount 7; mode = `Hurt }
       ; Next_turn
       ; Next_turn
-      ; Adjust
-          { id = combatant_id (chid "pc_default_vigoi"); amount = amount 4; mode = `Hurt }
+      ; Adjust { id = combatant_id (chid "pc_charlie"); amount = amount 4; mode = `Hurt }
       ; Next_turn
       ; Next_turn
       ; Next_turn
       ; Adjust { id = cid "cmb_r1"; amount = amount 9; mode = `Hurt }
-      ; Adjust
-          { id = combatant_id (chid "pc_default_vigoi"); amount = amount 3; mode = `Heal }
+      ; Adjust { id = combatant_id (chid "pc_charlie"); amount = amount 3; mode = `Heal }
       ; Remove_member { id = cid "cmb_r1" }
       ; Clear_encounter { snapshot_id = sid "snap_ambush"; at }
       ]
   in
   [%expect
     {|
-    $ send Cassimei, Vigoi, Ymma into the fight
+    $ send Alpha, Charlie, Delta into the fight
       round 1, turn 1/3
-      > Cassimei       PC       T10/10
-        Vigoi          PC       T10/10
-        Ymma           PC       T10/10
+      > Alpha          PC       T10/10
+        Charlie        PC       T10/10
+        Delta          PC       T12/12
 
     $ add 2 Robber
       round 1, turn 1/5
-      > Cassimei       PC       T10/10
-        Vigoi          PC       T10/10
-        Ymma           PC       T10/10
+      > Alpha          PC       T10/10
+        Charlie        PC       T10/10
+        Delta          PC       T12/12
         Robber 1       Robber   T11/11
         Robber 2       Robber   T11/11
 
@@ -71,91 +69,91 @@ let%expect_test "a fight, from the top" =
       round 1, turn 1/5
       > Robber 1       Robber   T11/11
         Robber 2       Robber   T11/11
-        Cassimei       PC       T10/10
-        Vigoi          PC       T10/10
-        Ymma           PC       T10/10
+        Alpha          PC       T10/10
+        Charlie        PC       T10/10
+        Delta          PC       T12/12
 
     $ hit Robber 1 for 7
       ! Robber 1 takes 7 damage and exceeds Pain Threshold
       round 1, turn 1/5
       > Robber 1       Robber   T4/11 [prone]
         Robber 2       Robber   T11/11
-        Cassimei       PC       T10/10
-        Vigoi          PC       T10/10
-        Ymma           PC       T10/10
+        Alpha          PC       T10/10
+        Charlie        PC       T10/10
+        Delta          PC       T12/12
 
     $ next turn
       round 1, turn 2/5
         Robber 1       Robber   T4/11 [prone]
       > Robber 2       Robber   T11/11
-        Cassimei       PC       T10/10
-        Vigoi          PC       T10/10
-        Ymma           PC       T10/10
+        Alpha          PC       T10/10
+        Charlie        PC       T10/10
+        Delta          PC       T12/12
 
     $ next turn
       round 1, turn 3/5
         Robber 1       Robber   T4/11 [prone]
         Robber 2       Robber   T11/11
-      > Cassimei       PC       T10/10
-        Vigoi          PC       T10/10
-        Ymma           PC       T10/10
+      > Alpha          PC       T10/10
+        Charlie        PC       T10/10
+        Delta          PC       T12/12
 
-    $ hit Vigoi for 4
+    $ hit Charlie for 4
       round 1, turn 3/5
         Robber 1       Robber   T4/11 [prone]
         Robber 2       Robber   T11/11
-      > Cassimei       PC       T10/10
-        Vigoi          PC       T6/10
-        Ymma           PC       T10/10
+      > Alpha          PC       T10/10
+        Charlie        PC       T6/10
+        Delta          PC       T12/12
 
     $ next turn
       round 1, turn 4/5
         Robber 1       Robber   T4/11 [prone]
         Robber 2       Robber   T11/11
-        Cassimei       PC       T10/10
-      > Vigoi          PC       T6/10
-        Ymma           PC       T10/10
+        Alpha          PC       T10/10
+      > Charlie        PC       T6/10
+        Delta          PC       T12/12
 
     $ next turn
       round 1, turn 5/5
         Robber 1       Robber   T4/11 [prone]
         Robber 2       Robber   T11/11
-        Cassimei       PC       T10/10
-        Vigoi          PC       T6/10
-      > Ymma           PC       T10/10
+        Alpha          PC       T10/10
+        Charlie        PC       T6/10
+      > Delta          PC       T12/12
 
     $ next turn
       ! Round 1 complete - All 5 combatants standing
       round 2, turn 1/5
       > Robber 1       Robber   T4/11 [prone]
         Robber 2       Robber   T11/11
-        Cassimei       PC       T10/10
-        Vigoi          PC       T6/10
-        Ymma           PC       T10/10
+        Alpha          PC       T10/10
+        Charlie        PC       T6/10
+        Delta          PC       T12/12
 
     $ hit Robber 1 for 9
       ! Robber 1 is down
       round 2, turn 1/5
       > Robber 1       Robber   T0/11 [prone DOWN]
         Robber 2       Robber   T11/11
-        Cassimei       PC       T10/10
-        Vigoi          PC       T6/10
-        Ymma           PC       T10/10
+        Alpha          PC       T10/10
+        Charlie        PC       T6/10
+        Delta          PC       T12/12
 
-    $ heal Vigoi for 3
+    $ heal Charlie for 3
       round 2, turn 1/5
       > Robber 1       Robber   T0/11 [prone DOWN]
         Robber 2       Robber   T11/11
-        Cassimei       PC       T10/10
-        Vigoi          PC       T9/10
-        Ymma           PC       T10/10
+        Alpha          PC       T10/10
+        Charlie        PC       T9/10
+        Delta          PC       T12/12
 
     $ remove Robber 1 from the fight
       round 2, turn 1/4
       > Robber 2       Robber   T11/11
-        Cassimei       PC       T10/10
-        Vigoi          PC       T9/10
-        Ymma           PC       T10/10
+        Alpha          PC       T10/10
+        Charlie        PC       T9/10
+        Delta          PC       T12/12
 
     $ clear the encounter
       ! Encounter saved - Round 2 - 3 PCs, 1 NPC
@@ -185,7 +183,7 @@ let%expect_test "and it can be brought back" =
   let world =
     fst
       (World.apply_all
-         World.initial
+         fixture_world
          [ Add_player_characters { characters = party }
          ; Clear_encounter { snapshot_id = sid "snap_ambush"; at }
          ])
@@ -197,9 +195,9 @@ let%expect_test "and it can be brought back" =
     $ restore the encounter saved as snap_ambush
       ! Encounter restored - Round 1 - 3 PCs, 0 NPCs
       round 1, turn 1/3
-      > Cassimei       PC       T10/10
-        Vigoi          PC       T10/10
-        Ymma           PC       T10/10 |}]
+      > Alpha          PC       T10/10
+        Charlie        PC       T10/10
+        Delta          PC       T12/12 |}]
 ;;
 
 (* Restoring can bring back a combatant whose roster entry was deleted in the
@@ -210,10 +208,10 @@ let%expect_test "a restored fight drops combatants whose character is gone" =
   let world =
     fst
       (World.apply_all
-         World.initial
+         fixture_world
          [ Add_player_characters { characters = party }
          ; Clear_encounter { snapshot_id = sid "snap_ambush"; at }
-         ; Delete_character { id = chid "pc_default_vigoi" }
+         ; Delete_character { id = chid "pc_charlie" }
          ; Restore_encounter { id = sid "snap_ambush" }
          ])
   in
@@ -222,8 +220,8 @@ let%expect_test "a restored fight drops combatants whose character is gone" =
   [%expect
     {|
     round 1, turn 1/2
-    > Cassimei       PC       T10/10
-      Ymma           PC       T10/10 |}]
+    > Alpha          PC       T10/10
+      Delta          PC       T12/12 |}]
 ;;
 
 (* A roster edit and the combatant it belongs to are one transition here. The
@@ -232,14 +230,14 @@ let%expect_test "a restored fight drops combatants whose character is gone" =
    old name. *)
 let%expect_test "editing a character updates the combatant in the same step" =
   let world =
-    fst (World.apply World.initial (Add_player_characters { characters = party }))
+    fst (World.apply fixture_world (Add_player_characters { characters = party }))
   in
   let world =
     fst
       (World.apply
          world
          (Update_character
-            { id = chid "pc_default_ymma"; patch = Set_name (name "Ymma Ironjaw") }))
+            { id = chid "pc_delta"; patch = Set_name (name "Ymma Ironjaw") }))
   in
   print_encounter world.encounter;
   (* Initiative and toughness are in-fight facts and deliberately do not follow
@@ -249,28 +247,27 @@ let%expect_test "editing a character updates the combatant in the same step" =
       (World.apply
          world
          (Update_character
-            { id = chid "pc_default_ymma"; patch = Set_initiative (initiative 42) }))
+            { id = chid "pc_delta"; patch = Set_initiative (initiative 42) }))
   in
   print_s
     [%message
       ""
         ~roster:
           (Initiative.to_int
-             (Option.value_exn (Roster.find world.roster (chid "pc_default_ymma")))
-               .initiative
+             (Option.value_exn (Roster.find world.roster (chid "pc_delta"))).initiative
            : int)
         ~combatant:
           (Initiative.to_int
              (Option.value_exn
-                (Encounter.find world.encounter (combatant_id (chid "pc_default_ymma"))))
+                (Encounter.find world.encounter (combatant_id (chid "pc_delta"))))
                .initiative
            : int)];
   [%expect
     {|
       round 1, turn 1/3
-      > Cassimei       PC       T10/10
-        Vigoi          PC       T10/10
-        Ymma Ironjaw   PC       T10/10
+      > Alpha          PC       T10/10
+        Charlie        PC       T10/10
+        Ymma Ironjaw   PC       T12/12
     ((roster    42)
      (combatant 0)) |}]
 ;;
@@ -279,7 +276,7 @@ let%expect_test "a character already in the fight is not added twice" =
   let world =
     fst
       (World.apply_all
-         World.initial
+         fixture_world
          [ Add_player_characters { characters = party }
          ; Add_player_characters { characters = party }
          ])
@@ -293,10 +290,10 @@ let%expect_test "a character already in the fight is not added twice" =
    exception and not a silent no-op. *)
 let%expect_test "what the reducer refuses, and what it says" =
   let world =
-    fst (World.apply World.initial (Add_player_characters { characters = party }))
+    fst (World.apply fixture_world (Add_player_characters { characters = party }))
   in
   List.iter
-    [ Action.Add_character { id = chid "pc_default_ymma" }
+    [ Action.Add_character { id = chid "pc_delta" }
     ; Update_character { id = chid "nobody"; patch = Set_note "hello" }
     ; Delete_character { id = chid "nobody" }
     ; Update_member { id = cid "nobody"; patch = Set_prone true }
@@ -350,7 +347,7 @@ let%expect_test "what is undoable" =
     ~f:(fun action ->
       printf
         "  %-32s undoable %-5b  coalesces as %s\n"
-        (describe_action World.initial action)
+        (describe_action fixture_world action)
         (Action.is_undoable action)
         (Option.value (Action.coalesce_key action) ~default:"-"));
   [%expect

@@ -256,12 +256,14 @@ let%expect_test "a v1 export from the deployed app" =
         c.is_builtin));
   [%expect
     {|
+    ~ characters[0].defense (as a roll-under target) 0 is out of range; clamped to 1.
+    ~ encounter.members[0].defense (as a roll-under target) 0 is out of range; clamped to 1.
     ~ Rebuilt the auto-naming counter from Goblin 3.
     round 3, turn 2/2
       Ymma           PC       T4/10 [prone]
     > Goblin 3       Goblin   T6/11
-    Ymma       defense target 10  armor Light (d4)   builtin true
-    Brakk      defense target 7   armor chitin       builtin false |}]
+    Ymma       defense target 1   armor Light (d4)   builtin true
+    Brakk      defense target 3   armor chitin       builtin false |}]
 ;;
 
 (* v1's single [toughness] is a maximum on a roster entry and whatever is left on
@@ -300,6 +302,8 @@ let%expect_test "a wounded combatant recovers its maximum from the roster or the
   Option.iter world ~f:(fun world -> print_encounter world.encounter);
   [%expect
     {|
+    ~ characters[0].defense (as a roll-under target) 0 is out of range; clamped to 1.
+    ~ encounter.members[0].defense (as a roll-under target) 0 is out of range; clamped to 1.
     ~ Rebuilt the auto-naming counter from Goblin 1, Wight 1.
     round 1, turn 1/3
     > Ymma           PC       T4/10
@@ -340,6 +344,7 @@ let%expect_test "a combatant pointing at a character that is gone becomes an NPC
   Option.iter world ~f:(fun world -> print_encounter world.encounter);
   [%expect
     {|
+    ~ encounter.members[0].defense (as a roll-under target) 0 is out of range; clamped to 1.
     ~ Ghost points at character pc_deleted, which is gone; demoted to an NPC.
     ~ Rebuilt the auto-naming counter from NPC 1.
     round 1, turn 1/1
@@ -396,7 +401,8 @@ let%expect_test "the five localStorage keys the deployed app writes" =
     {|
       round 2, turn 1/1
       > Ymma           PC       T7/10
-      (no corrections)
+      ~ characters[0].defense (as a roll-under target) 0 is out of range; clamped to 1.
+      ~ encounter.members[0].defense (as a roll-under target) 0 is out of range; clamped to 1.
       ! sct.v1.bestiary: this is not JSON: Line 1, bytes 2-19:
     Invalid token 'this is not json '
       bestiary entries: 0 |}]

@@ -1,12 +1,15 @@
 open! Core
 
-let character ~id ~name ~role ~toughness ~defense_modifier ~armor ~note =
+(* [defense] here is the number on the character sheet -- the target the GM
+   reads off and rolls under -- not the modifier a monster entry prints. The
+   two spellings are [10 - x] apart, and [Defense] keeps the target. *)
+let character ~id ~name ~role ~toughness ~defense ~armor ~note =
   { Character.id = Ids.Character_id.of_string id
   ; name = Name.of_string name
   ; role
   ; initiative = Initiative.zero
   ; toughness = Toughness.create_exn ~current:toughness ~max:toughness
-  ; defense = Or_error.ok_exn (Defense.of_modifier defense_modifier)
+  ; defense = Or_error.ok_exn (Defense.of_target defense)
   ; armor = Armor.parse armor
   ; pain_threshold = Pain_threshold.no_threshold
   ; attributes = Attributes.empty
@@ -21,7 +24,7 @@ let all =
       ~name:"Cassimei"
       ~role:"Bard"
       ~toughness:10
-      ~defense_modifier:8
+      ~defense:8
       ~armor:"Light (d4)"
       ~note:"Charming storyteller"
   ; character
@@ -29,7 +32,7 @@ let all =
       ~name:"Thalia"
       ~role:"Wizard"
       ~toughness:10
-      ~defense_modifier:3
+      ~defense:3
       ~armor:"Light (d4)"
       ~note:"Mystic scholar"
   ; character
@@ -37,7 +40,7 @@ let all =
       ~name:"Vigoi"
       ~role:"Warrior"
       ~toughness:10
-      ~defense_modifier:0
+      ~defense:13
       ~armor:"Medium (d8)"
       ~note:"Placeholder stats"
   ; character
@@ -45,7 +48,7 @@ let all =
       ~name:"Ymma"
       ~role:"Goblin"
       ~toughness:10
-      ~defense_modifier:0
+      ~defense:13
       ~armor:"Light (d4)"
       ~note:"Placeholder stats"
   ]

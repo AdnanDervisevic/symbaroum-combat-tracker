@@ -11,7 +11,7 @@
     {!Symbaroum.World.t} consistent" but "does it stay consistent after any
     sequence of things a user can do". So the generator produces an
     {!Symbaroum.Action.t} list and the properties fold it over
-    {!Symbaroum.World.initial}. That also sidesteps the question of how to
+    {!Test_helpers.fixture_world}. That also sidesteps the question of how to
     generate a [private] type without a public constructor.
 
     The ids come from small fixed pools. Freely generated ids would produce a
@@ -21,12 +21,13 @@
 open! Core
 open! Symbaroum
 open Base_quickcheck
+open Test_helpers
 
 let combatant_ids =
   List.init 6 ~f:(fun i -> Ids.Combatant_id.of_string [%string "cmb_%{i#Int}"])
 ;;
 
-let character_ids = Default_roster.ids
+let character_ids = fixture_ids
 
 let snapshot_ids =
   List.init 2 ~f:(fun i -> Ids.Snapshot_id.of_string [%string "snp_%{i#Int}"])
@@ -122,10 +123,10 @@ module Script = struct
   (** Every world a script passes through, so a property can be stated about the
       whole run rather than only its result. *)
   let trace t =
-    List.folding_map t ~init:World.initial ~f:(fun world action ->
+    List.folding_map t ~init:fixture_world ~f:(fun world action ->
       let next, events = World.apply world action in
       next, (action, next, events))
   ;;
 
-  let run t = fst (World.apply_all World.initial t)
+  let run t = fst (World.apply_all fixture_world t)
 end

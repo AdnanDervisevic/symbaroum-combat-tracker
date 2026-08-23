@@ -131,6 +131,7 @@ not decoration — a partial list of what they caught:
 | the round-trip property | `name_counter = []` meant both "no counter, rebuild it" and "the counter is empty" |
 | the js_of_ocaml build | **`int` is 32 bits under js_of_ocaml**, and JavaScript epoch milliseconds are ~1.7×10¹². Every native test passed; the browser would have been silently wrong |
 | running it in a browser | a `Bonsai.state` setter takes the new value, so it closes over the old one — ticking four characters quickly put one in the fight. It is a `state_machine0` now |
+| the GM whose data it is | `defense` means two different things: a monster table prints the modifier an attacker applies, a character sheet prints the target the character rolls under. Reading it as a modifier everywhere turned an unfilled sheet (`0`) into a confident "average" instead of repairing it and saying so |
 | measuring, not assuming | `dune build -p symbaroum` builds *every stanza in the package*, so the CLI sitting in it made the "core has no Unix or JS dependency" check green and vacuous. The CLI has its own package |
 
 ---

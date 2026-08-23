@@ -273,18 +273,33 @@ is not the same kind of number as one computed from a statblock, and the differe
 survive all the way to the reader of the verdict. That is the entire purpose of
 `Caveat.t`.
 
-### The preset `defense` field is a modifier, uniformly
+### `defense` has two readings, and whose sheet it came from decides which
 
-Resolved in Phase 2 and recorded in `PORT_TODO.md`; the short version is that the stored
-number is `10 − Defence`, so the roll-under target is `10 − stored`. Under that reading
-the two placeholder characters' `defense: 0` becomes a target of exactly 10, the average —
-which is the right meaning for a placeholder, and the reading under which they are legal
-at all.
+A monster table prints the **modifier** an attacker applies, so the roll-under target is
+`10 − stored`. A player character's sheet prints the **target itself** — the number the GM
+reads off and rolls under. These are the same quantity written two ways, and `Defense.t`
+keeps one of them, the target, with `of_target` and `of_modifier` as the two constructors
+so that no call site can be vague about which one it is holding.
 
-The consequence worth flagging: Cassimei stores `defense: 8`, which under this reading is
-a target of **2** — very easy to hit. That is a fact about placeholder data rather than
-about the model, but it shows up in every analysis of the shipped party and is worth
-recognising rather than being surprised by.
+| source | reading | where |
+|---|---|---|
+| monster presets | modifier | `Monster_preset.reconcile_defense` |
+| bestiary rows in a v1 save | modifier | `Migrate.of_npc_table` |
+| NPC combatants in a v1 save | modifier | `Migrate.of_npc_table` |
+| player characters, roster and combatant alike | target | `Migrate.of_pc_sheet`, `Default_roster` |
+
+The presets are legal under the modifier reading for 74 of the 79 that carry the field;
+the rest fall back to Quick and record a `Caveat.t`.
+
+**This was wrong for a while, and the way it was wrong is worth keeping.** The port
+originally read the field as a modifier everywhere, reasoning that the shipped characters
+store `defense: 0` and zero is not a legal target. That inference was backwards: a `0` on a
+character sheet means *nobody has filled it in*, not *average*. Reading it as a modifier
+turned an unfilled sheet into a confident target of 10 and lost the fact that anything was
+missing. The corrected code clamps it to 1 and reports a normalization instead, which is
+visible in [`test_sample_files.ml`](../test/codec/test_sample_files.ml). The general
+lesson: when a value is illegal under the reading you expect, that can be the data telling
+you it is absent rather than the reading telling you it is wrong.
 
 ---
 

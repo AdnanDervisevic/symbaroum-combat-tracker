@@ -9,6 +9,7 @@
 
 open! Core
 open! Symbaroum
+open Test_helpers
 open Test_generators
 
 let run f = Base_quickcheck.Test.run_exn (module Script) ~f
@@ -84,7 +85,7 @@ let%test_unit "only stepping the turn moves the round, and never by more than on
     let (_ : Round.t) =
       List.fold
         (Script.trace script)
-        ~init:(Encounter.round World.initial.encounter)
+        ~init:(Encounter.round fixture_world.encounter)
         ~f:(fun before (action, world, _) ->
           let after = Encounter.round world.encounter in
           let before = Round.to_int before
@@ -202,7 +203,7 @@ let%test_unit "sorting keeps the cast, the round, and descending initiative" =
 let%test_unit "a rejected action leaves the world exactly as it was" =
   run (fun script ->
     let (_ : World.t) =
-      List.fold script ~init:World.initial ~f:(fun world action ->
+      List.fold script ~init:fixture_world ~f:(fun world action ->
         let next, events = World.apply world action in
         let rejected =
           List.exists events ~f:(function

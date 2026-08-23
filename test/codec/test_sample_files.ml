@@ -33,10 +33,10 @@ let%expect_test "a version 1 export reads, and says what it changed" =
     print_encounter world.encounter;
     List.iter (Roster.to_list world.roster) ~f:(fun (c : Character.t) ->
       printf
-        "  %-10s defense %2d -> target %2d\n"
+        "  %-10s rolls under %2d, so attackers get %+d\n"
         (Name.to_string c.name)
-        (Defense.to_modifier c.defense)
-        (Defense.to_int c.defense));
+        (Defense.to_int c.defense)
+        (Defense.to_modifier c.defense));
     List.iter normalizations ~f:(fun n ->
       printf "  ~ %s\n" (Normalization.to_string_hum n));
     [%expect
@@ -46,10 +46,14 @@ let%expect_test "a version 1 export reads, and says what it changed" =
         Ymma           PC       T10/10
       > Robber 1       Robber   T4/11 [prone]
         Robber 3       Robber   T11/11
-      Cassimei   defense  8 -> target  2
-      Thalia     defense  3 -> target  7
-      Vigoi      defense  0 -> target 10
-      Ymma       defense  0 -> target 10
+      Cassimei   rolls under  8, so attackers get +2
+      Thalia     rolls under  3, so attackers get +7
+      Vigoi      rolls under  1, so attackers get +9
+      Ymma       rolls under  1, so attackers get +9
+      ~ characters[2].defense (as a roll-under target) 0 is out of range; clamped to 1.
+      ~ characters[3].defense (as a roll-under target) 0 is out of range; clamped to 1.
+      ~ encounter.members[0].defense (as a roll-under target) 0 is out of range; clamped to 1.
+      ~ encounter.members[1].defense (as a roll-under target) 0 is out of range; clamped to 1.
       ~ Rebuilt the auto-naming counter from Robber 3. |}]
 ;;
 

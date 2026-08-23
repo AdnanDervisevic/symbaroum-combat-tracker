@@ -22,7 +22,6 @@ let tough ?current max =
   Toughness.create_exn ~current:(Option.value current ~default:max) ~max
 ;;
 
-let defense modifier = Or_error.ok_exn (Defense.of_modifier modifier)
 let amount n = Adjust_amount.of_int_exn n
 let initiative n = Initiative.of_int_exn n
 
@@ -41,7 +40,7 @@ let combatant
       ?(flanked = false)
       ?(attributes = Attributes.empty)
       ?attack
-      ?(defense = Or_error.ok_exn (Defense.of_modifier 0))
+      ?(defense = Or_error.ok_exn (Defense.of_target 10))
       ~id
       ~name:n
       ~initiative:init
@@ -71,6 +70,69 @@ let attack ?(source = Attack_profile.Source.From_data) ~accurate ~damage () =
     ~damage:(Option.value_exn (Dice.parse damage) ~message:[%string "bad dice %{damage}"])
     ~source
 ;;
+
+(* {1 A roster to test against} *)
+
+(** The party the behaviour tests run with.
+
+    Deliberately {i not} {!Symbaroum.Default_roster}. That roster is content: the
+    GM edits it, fills in a sheet that was blank, renames somebody. A behaviour
+    test that pins its numbers is really asserting that nobody has played the
+    game lately, and it goes red for a reason that has nothing to do with the
+    code under test.
+
+    So the shipped roster is exercised in exactly one place --
+    [test/data/test_default_roster.ml] -- and only for the invariants that hold
+    whatever the numbers are. Everything else uses these four, who are stable
+    because nobody has any reason to edit them. NATO names, so nobody mistakes
+    them for a party.
+
+    [defense] is spelled the way a character sheet spells it: the target to roll
+    under. Monster tables print the modifier instead, which is what
+    {!Symbaroum.Defense.of_modifier} is for. *)
+let fixture_character ~id ~name:n ~defense ~toughness:t ~armor =
+  { Character.id = chid id
+  ; name = name n
+  ; role = "Fixture"
+  ; initiative = Initiative.zero
+  ; toughness = tough t
+  ; defense = Or_error.ok_exn (Defense.of_target defense)
+  ; armor = Armor.parse armor
+  ; pain_threshold = Pain_threshold.no_threshold
+  ; attributes = Attributes.empty
+  ; note = ""
+  ; is_builtin = false
+  }
+;;
+
+let fixture_roster =
+  [ fixture_character
+      ~id:"pc_alpha"
+      ~name:"Alpha"
+      ~defense:12
+      ~toughness:10
+      ~armor:"Light (d4)"
+  ; fixture_character
+      ~id:"pc_bravo"
+      ~name:"Bravo"
+      ~defense:8
+      ~toughness:10
+      ~armor:"Medium (d8)"
+  ; fixture_character ~id:"pc_charlie" ~name:"Charlie" ~defense:10 ~toughness:10 ~armor:""
+  ; fixture_character
+      ~id:"pc_delta"
+      ~name:"Delta"
+      ~defense:5
+      ~toughness:12
+      ~armor:"Heavy (d12)"
+  ]
+;;
+
+let fixture_ids = List.map fixture_roster ~f:Character.id
+
+(** {!fixture_roster} in a world, standing in for {!Symbaroum.World.initial}
+    everywhere the test is about behaviour rather than about what ships. *)
+let fixture_world = { World.empty with roster = fst (Roster.of_list fixture_roster) }
 
 (* {1 Printers} *)
 
@@ -182,7 +244,7 @@ let describe_action (world : World.t) (action : Action.t) =
 
 (** Applies a script and prints what each step did, which is the closest thing
     this repo has to a demo. *)
-let transcript ?(world = World.initial) actions =
+let transcript ?(world = fixture_world) actions =
   List.fold actions ~init:world ~f:(fun world action ->
     printf "\n$ %s\n" (describe_action world action);
     let world, events = World.apply world action in

@@ -40,9 +40,10 @@ let initiative repairs ~field given =
     given
 ;;
 
-(* The label says which reading the number is, because by the time it gets here
-   it is a roll-under target and a v1 file wrote a modifier -- so a report naming
-   the bare field would show a number the GM cannot find in their file. *)
+(* The label says which reading the number is. By the time it reaches here it is
+   always a roll-under target, but a v1 monster row wrote a modifier and
+   [Migrate] converted it, so a report naming the bare field could show a number
+   the GM cannot find in their file. *)
 let defense repairs ~field given =
   bounded
     repairs
