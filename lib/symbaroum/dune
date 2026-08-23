@@ -1,6 +1,6 @@
 (library
  (name symbaroum)
  (public_name symbaroum)
- (libraries core)
+ (libraries core base_quickcheck splittable_random)
  (preprocess
   (pps ppx_jane)))

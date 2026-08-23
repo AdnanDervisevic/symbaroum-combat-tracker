@@ -1,11 +1,14 @@
 #!/usr/bin/env bash
-# Run dune inside WSL2 with the layout §0.1c of PORT_TODO.md decided on.
+# Run dune inside WSL2 with the switch this project pins.
 #
-# Why this wrapper exists: the repo is canonical on the Windows side, reached
-# over the 9p /mnt/c mount, which is ~78x slower than ext4 for the small-file
-# I/O dune generates. Sources stay there (one working tree, no sync risk) but
-# build output must not. DUNE_BUILD_DIR moves it to ext4, and the switch is a
-# named global switch rather than a local _opam/ on the mount.
+# The repo lives on ext4 at ~/symbaroum-combat-tracker; /mnt/c is abandoned for
+# this work because `dune promote` silently no-ops on the 9p mount (see the
+# decisions log in PORT_TODO.md). So there is nothing clever left to do about
+# the build directory -- this wrapper exists only to select the named global
+# opam switch, so the layout need not be re-remembered.
+#
+# Plain `dune` from the repo root works identically once `eval $(opam env)` has
+# been run in the shell.
 #
 # Usage, from inside WSL:   ./scripts/dune.sh build @fmt
 #                           ./scripts/dune.sh runtest
@@ -21,10 +24,6 @@ if ! opam switch list --short 2>/dev/null | grep -qx "$SWITCH"; then
 fi
 
 eval "$(opam env --switch="$SWITCH" --set-switch)"
-
-# Keep _build off the 9p mount. Per-switch so switches can't collide.
-export DUNE_BUILD_DIR="${DUNE_BUILD_DIR:-$HOME/build/symbaroum-$SWITCH}"
-mkdir -p "$DUNE_BUILD_DIR"
 
 cd "$(dirname "$(readlink -f "$0")")/.."
 exec dune "$@"

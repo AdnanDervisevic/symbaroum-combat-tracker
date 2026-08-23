@@ -30,21 +30,27 @@ them**. This file is the only continuity. Trust it over any recollection.
 ## Current status
 
 ```
-Phase:        0 COMPLETE ✅ — toolchain proven end to end. **Phase 1 is next and unblocked.**
-Last session: 2026-08-23 — Bonsai hello-world renders in a browser with no console errors,
-              linking `bonsai.web` and the `symbaroum` core library in one binary.
-              All four checks green: @fmt, -p symbaroum, runtest, build.
-              THE REPO MOVED to `~/symbaroum-combat-tracker` (ext4, in WSL2); `/mnt/c` is
-              abandoned because `dune promote` silently no-ops there. The tree at
-              `C:\Users\adnan\symbaroum-combat-tracker` is STALE at f7662d0 — never commit
+Phase:        1 COMPLETE - scalars and ids. **Phase 2 is next and unblocked.**
+Last session: 2026-08-23 - 17 scalar modules, every one with a full `.mli`, plus 10 test
+              files. All four checks green: @fmt, -p symbaroum, runtest, build.
+              `dune promote` confirmed working on ext4 (it was the reason for the move).
+              Plan corrections found while building, all recorded in the decisions log:
+              `Resistance` has **6** bands, not 4 (Mighty and Legendary exist);
+              `Core.String_id` already does what the plan's hand-rolled
+              `Identifiable.Make` would have; `Armor` must keep the raw text.
+              THE REPO IS at `~/symbaroum-combat-tracker` (ext4, in WSL2). The tree at
+              `C:\Users\adnan\symbaroum-combat-tracker` is STALE at f7662d0 - never commit
               to it. Windows reaches the live repo at
               `\wsl.localhost\Ubuntu\home\adnan\symbaroum-combat-tracker`.
               Pinned: ocaml 5.2.0, core v0.16.2, bonsai v0.16.0 (**Proc style**),
               js_of_ocaml 5.9.1, dune 3.23.1, ocamlformat 0.29.0.
-              `virtual_dom` pins the train to v0.16 — do not bump `core` to v0.17.
-Next action:  Start **Phase 1 — scalars and ids** (§ below). First module: `ids.ml`/`.mli`
-              via `Identifiable.Make`. Build with `./scripts/dune.sh` or plain `dune` from
-              the repo root inside WSL. Green means all four of:
+              `virtual_dom` pins the train to v0.16 - do not bump `core` to v0.17.
+Next action:  Start **Phase 2 - data port + normalization**. First task: `monster_preset.ml`
+              + `.mli`, then generate `monster_presets.ml` from `src/data/defaultMonsters.ts`
+              (86 presets). **Read the Defense open question below before porting the
+              `defense` field** - it needs a human ruling, and 29 of the 86 presets are
+              still unexplained. Build from the repo root inside WSL. Green means all
+              four of:
                 dune build @fmt && dune build -p symbaroum && dune runtest && dune build
 ```
 
@@ -99,6 +105,15 @@ of rationale.
 | 2026-08-23 | **`bonsai` pins the whole Jane Street train to v0.16** | Installing `virtual_dom` downgraded 55 packages (`core` v0.17.2 → v0.16.2, `base` v0.17.3 → v0.16.5, and the entire ppx set). v0.16 is perfectly idiomatic, so this costs nothing — but **do not "helpfully" bump `core` to v0.17**, because it will silently take the UI stack with it. |
 | 2026-08-23 | Ubuntu **26.04 LTS**, not the plan's unstated assumption | Whatever `\wsl --install -d Ubuntu` shipped. Newer than expected; if an opam package needs an older glibc or a missing distro package, suspect this first. |
 | 2026-08-23 | `sudo` needs a password → **`apt` steps are permanent human hand-offs** | Not fixable from a tool shell, and passwords must not be handled by one. Structure future sessions so all `apt` work is batched into a single command the human runs once, rather than discovered piecemeal. |
+| 2026-08-23 | **Use `Core.String_id.Make`, not a hand-rolled `Identifiable.Make`** | The plan specified `Identifiable.Make` for the four ids. Core already ships `String_id`, which is `t = private string`, rejects the empty string and edge whitespace in `of_string`/`t_of_sexp`, is **generative** (so each application is a genuinely distinct type), and includes `Identifiable` and `Quickcheckable`. A hand-rolled version was written first and then deleted: it was shadowed by `Core.String_id` the moment `open! Core` was in scope, which is the language pointing out that the wheel already exists. Note `of_string` **raises**; the Phase 4 decoder lifts it with `Or_error.try_with` rather than every id module growing its own `create`. |
+| 2026-08-23 | **`Resistance` has 6 bands, not the plan's 4** | Counted in `defaultMonsters.ts`: Weak 14, Ordinary 31, Challenging 20, Strong 14, **Mighty 4**, **Legendary 3**. The plan's damage prior mapped only the first four. The band is the *only* stand-in for weapon data the app does not record, so a missing band would have silently handed the seven nastiest creatures in the file a mild weapon. The prior is now Weak 1d6 / Ordinary 1d8 / Challenging 1d10 / Strong 1d12 / Mighty 1d12+1 / Legendary 1d12+2, stated in one place (`Attack_profile.damage_prior`) so `doc/model.md` can quote it and a reviewer can disagree with it in one edit. |
+| 2026-08-23 | **`Armor.t` is a record `{ text; reduction }`, not the plan's bare variant** | The plan had `Unarmored \| Fixed of int \| Rolled of Dice.t \| Unparsed of string`, which loses the user's text for every value that *does* parse: `"Light (d4)"` becomes `Rolled 1d4` and renders back as `"1d4"`. Two costs. It is a visible regression against the React UI, which displays that string; and it breaks the codec round-trip property (`of_json (to_json w) = Ok (w, [])` with **no** normalizations) that Phase 4 wants to state in its strong form. Keeping `text` beside a parsed `reduction option` costs one field and buys both. `private` plus a single total `parse` stops the two disagreeing. `reduction = None` is the old `Unparsed`. |
+| 2026-08-23 | **`Defense.t` stores the absolute target (`1..20`), and exposes both constructors** | Confirmed that the two preset spellings are the same quantity: Spring Elf `qui 13, defense -3` and Servant Daemon `qui 15, defense 15` are related by `modifier = 10 - target`, with `target = Quick`. So `of_modifier (-3)` and `of_target 13` both give `13`, while `of_modifier 15` **errors** -- exactly the forcing function the plan wanted, sited at the constructor. Phase 2 still needs the human ruling on the 29 unexplained presets. |
+| 2026-08-23 | Added `bounded_int.ml`, a functor the plan did not name | `Attribute_value`, `Defense`, `Npc_count` and `Adjust_amount` are all "an int, but only these ones" and were shaping up as four near-identical modules. One functor gives all four `of_int`/`of_int_exn`/`of_int_clamped`/`to_int` plus a generator **routed through the smart constructor**, which is the plan's own rule for generators. `of_int_clamped` exists only for the import path, which reports the repair. |
+| 2026-08-23 | `Dice.distribution` lands in Phase 1, not Phase 5 | The plan listed "parser + pmf" under `dice.ml` while putting `Pmf` in `model/`. Exact convolution over a support of at most `count * sides` values needs no `Pmf` type, so `Dice` returns `(int * float) list` and Phase 5's `Pmf.of_dice` will wrap it. Keeps `Dice` self-contained and gives the 2d6 closed-form anchor a home now. |
+| 2026-08-23 | The pain threshold is checked against **post-armour, pre-clamp** damage | Two candidate quantities: what got through armour, and what the target could actually absorb before reaching zero. They differ only on a lethal blow, and a combatant at zero toughness is *down*, not prone -- so the cap would change no outcome while making the rule harder to state. Recorded in `pain_threshold.mli` and pinned by an expect test, so the choice is visible rather than accidental. |
+| 2026-08-23 | `names.ml` in the plan is `name.ml` here | Singular reads better as a type module, and the type is `Name.t`. No other change. |
+| 2026-08-23 | **`dune build -p symbaroum` does not catch dev-profile warnings** | `bounded_int.mli` passed the release build and failed `dune build` with warning 67 (unused functor parameter; fixed with `Make (_ : Arg)`). The release profile relaxes warnings, so a green `-p` build proves the core is JS-free and proves nothing about warnings. This is why "green" means all four checks and is never shorthand for any one of them. |
 
 ---
 
@@ -382,47 +397,67 @@ Rules that hold throughout:
 
 ---
 
-## Phase 1 — Scalars and ids  ⏱ 1–2 days
+## Phase 1 — Scalars and ids  ⏱ 1–2 days — ✅ COMPLETE (2026-08-23)
 
 The most idiom-dense code in the repo, and the part a reviewer reads first. Each type kills
 a specific illegal state that [`src/types.ts`](src/types.ts) permits.
 
-- [ ] `ids.ml` — `Character_id`, `Combatant_id`, `Bestiary_id`, `Snapshot_id` via
-      `Identifiable.Make`, giving `Map`/`Set`/`Table` free. Today all four are bare `string`.
-      Also replaces `CharacterCard.tsx:112`'s `id.startsWith('pc_default_')` — a data property
-      smuggled into an identifier — with an `is_builtin : bool` field.
-- [ ] `attribute.ml` — the 8 attributes as a variant with `Map`/`Set`
-- [ ] `attribute_value.ml` — `private int` bounded `1..20`, with `modifier t = 10 - raw`
-- [ ] `attributes.ml` — *key-total* `Attribute_value.t option Attribute.Map.t`.
-      Today `attributes?: CharacterAttributes | null` gives "no attributes" three spellings
-      (`undefined`, `null`, `{}`) and each of the 8 fields three more.
-      **`normalizeAttributes`, `cloneAttributes` and `areAttributesEqual` in
-      [`combatLogic.ts`](src/utils/combatLogic.ts) exist solely to paper over this and all
-      three vanish** — structural compare is derived.
-- [ ] `dice.ml` — `{ count; sides; modifier }`, parser + `pmf`
-- [ ] `armor.ml` — `Unarmored | Fixed of int | Rolled of Dice.t | Unparsed of string`,
-      **total** parser. Today `armor: string` is never parsed anywhere. `Unparsed` is the
-      honest representation: it round-trips the GM's free text while making "the model could
-      not use this" visible in the type *and* in the UI.
-- [ ] `defense.ml` — `private int` in `1..20`. See the Phase 2 data problem: the preset field
-      mixes modifiers and absolute targets, and this constructor is where that is forced into the open.
-- [ ] `toughness.ml` — `private { current : int; max : int }` with `0 <= current <= max`.
-      Today `toughness: number` is current and max at once, clamped in three view-layer places
-      ([App.tsx:407](src/App.tsx:407), [CombatantCard.tsx:89](src/components/cards/CombatantCard.tsx:89),
-      [CharacterCard.tsx:52](src/components/cards/CharacterCard.tsx:52)) and **zero places on
-      the import path**. `max` is also what the probability model needs to define "down".
-- [ ] `pain_threshold.ml` — `No_threshold | Every_hit | At_least of int`.
-      Today `number | null`, where `null` means "never prones" and `0` means "every hit prones" —
-      a distinction that lives only in the author's head and in [App.tsx:411](src/App.tsx:411).
-- [ ] `attack_profile.ml` — carries `source : From_data | Estimated_from_resistance`
-- [ ] `monster_type.ml`, `names.ml`
-- [ ] `round.ml` — `private int >= 1`
-- [ ] `npc_count.ml`, `adjust_amount.ml`
-- [ ] `Base_quickcheck` generators for every scalar, routed **through the smart constructors**
-      so only legal values are generated
-- [ ] `dune runtest` green
+**Landed: 17 modules, all with `.mli`s, and 10 test files.** All four checks green.
 
-**Exit:** ~15 modules with full `.mli`s, generators, tests green.
+- [x] `ids.ml` — `Character_id`, `Combatant_id`, `Bestiary_id`, `Snapshot_id`, each a
+      generative application of **`Core.String_id.Make`** (see the decisions log: the plan
+      said `Identifiable.Make`, but Core already ships exactly this). `Map`/`Set`/`Table`
+      come free, the empty string and edge whitespace are rejected, and the four types are
+      genuinely distinct rather than four aliases of `string`.
+      The `is_builtin` replacement for `CharacterCard.tsx:112` belongs to `Character.t` in
+      **Phase 3** — an id carries no data, which is the whole point. `test_ids.ml` records
+      that the smuggled property is gone.
+- [x] `bounded_int.ml` — **not in the plan.** The functor behind the four bounded ints.
+- [x] `attribute.ml` — the 8 attributes as a variant with `Map`/`Set`, plus the wire keys
+      (`acc`, `cun`, …) and UI labels (`ACC`, …)
+- [x] `attribute_value.ml` — `private int` bounded `1..20`, with `modifier t = 10 - raw`
+- [x] `attributes.ml` — *key-total* `Attribute_value.t option Attribute.Map.t`.
+      **`normalizeAttributes`, `cloneAttributes` and `areAttributesEqual` in
+      [`combatLogic.ts`](src/utils/combatLogic.ts) all vanish** — `empty` is the one
+      spelling of "nothing known", copying is free, and `equal` is derived. Pinned by
+      `test_attributes.ml`.
+- [x] `dice.ml` — `{ count; sides; modifier }`, total parser, `to_string`, bounds, `mean`,
+      exact `distribution` by convolution, and `roll` over `Splittable_random`.
+      The 2d6 closed-form anchor (11 outcomes, 1/36 … 6/36 … 1/36) is in `test_dice.ml`.
+- [x] `armor.ml` — `private { text; reduction }` with a **total** parser; `reduction = None`
+      is the plan's `Unparsed`. Parses every spelling in the shipped data: `""`, `"0"`,
+      integers, `1D4`/`1D8`, and the parenthesised PC form `Light (d4)`. See the decisions
+      log for why the raw text is kept.
+- [x] `defense.ml` — `private int` in `1..20`, storing the **absolute target**, with
+      `of_target` and `of_modifier` both exposed so a call site must say which spelling it
+      is reading. The Phase 2 reconciliation is still open — see below.
+- [x] `toughness.ml` — `private { current; max }` with `0 <= current <= max`.
+      `damage` and `heal` return the amount **actually** applied, which is what the pain
+      threshold and the model both need.
+- [x] `pain_threshold.ml` — `No_threshold | Every_hit | At_least of int`, and
+      `is_exceeded ~damage` taking post-armour damage rather than the raw number typed into
+      the box. Bug-ledger row `test_pain_threshold_uses_damage_dealt` lives here.
+- [x] `resistance.ml` — **not in the plan**, and it has **6** bands, not 4
+- [x] `attack_profile.ml` — carries `source : From_data | Estimated_from_resistance of
+      Resistance.t`, and `damage_prior` states the estimate in one place
+- [x] `monster_type.ml`, `name.ml` (the plan called the latter `names.ml`)
+- [x] `round.ml` — `private int >= 1`, with `prev` flooring at 1. The `succ`/`prev`
+      asymmetry is asserted rather than left as folklore.
+- [x] `npc_count.ml`, `adjust_amount.ml`
+- [x] `Base_quickcheck` generators for every scalar, routed **through the smart
+      constructors** so only legal values are generated
+- [x] `dune runtest` green
+
+### Properties proven in Phase 1
+
+`modifier = 10 - raw` · a generated attribute block is always key-total · a dice
+distribution sums to 1 and spans exactly `min_roll .. max_roll` · a roll always lands
+inside those bounds · `Armor.parse` is total on arbitrary strings · `of_modifier` inverts
+`to_modifier` · `0 <= current <= max` survives any sequence of damage and healing, and
+`max` never moves · `prev (succ r) = r` everywhere, and `succ (prev r) = r` except at the
+floor, where the exception is asserted explicitly.
+
+**Exit:** ~15 modules with full `.mli`s, generators, tests green. ✅
 
 ---
 
@@ -831,7 +866,7 @@ One named test per fixed bug, with the old wrong behaviour in a comment above th
 | [ ] | `test_import_rejects_unknown_version` | `version` never compared to 1 ([exportImport.ts:44](src/utils/exportImport.ts:44)) |
 | [ ] | `test_import_repairs_out_of_range_turn_index` | blind cast after the version check |
 | [ ] | `test_difficulty_with_zero_defense_party` | `npcDefense / pcDefense` → `Infinity` ([EncounterPanel.tsx:19](src/components/panels/EncounterPanel.tsx:19)) |
-| [ ] | `test_pain_threshold_uses_damage_dealt` | compares raw input, ignoring armor and clamping ([App.tsx:411](src/App.tsx:411)) |
+| [x] | `test_pain_threshold_uses_damage_dealt` | compares raw input, ignoring armour ([App.tsx:411](src/App.tsx:411)). Landed in Phase 1 as [`test/test_pain_threshold.ml`](test/test_pain_threshold.ml); see the decisions log for why the threshold uses post-armour, pre-clamp damage. |
 
 **On the ninth row** — the divide-by-zero is reachable with stock data but narrower than it
 first looks. The four default PCs have defense 8, 3, 0, 0, averaging to 2.75 → `Math.round` → 3,
@@ -847,15 +882,19 @@ average defense — e.g. adding only Vigoi and/or Ymma. **Write the test to that
 | `{members: [], turnIndex: 5, round: 0}` | `Encounter.t` = `Empty \| Active` with a nonempty `Turn_order.t` zipper | `test_delete_character_repairs_cursor` |
 | Sort silently resets `round` to 1 | `Round.t` lives outside `Turn_order.t`, so `sort_stable_by` cannot reach it | `test_sort_preserves_round` |
 | `{source:'npc', refId:'pc_x'}` | `Allegiance = Player_character of Character_id.t \| Non_player of {...}` | (compile-time; note in README) |
-| "no attributes" spelled `undefined` / `null` / `{}` | key-total `Attribute_value.t option Attribute.Map.t` | deletes `normalizeAttributes` + `areAttributesEqual` |
-| `painThreshold: 0` vs `null` meaning different things | `No_threshold \| Every_hit \| At_least of int` | `test_pain_threshold_uses_damage_dealt` |
-| `toughness` is current and max at once; unclamped on import | `private { current; max }` with `0 <= current <= max` | quickcheck: any `Adjust` sequence |
+| "no attributes" spelled `undefined` / `null` / `{}` | key-total `Attribute_value.t option Attribute.Map.t` | ✅ [`test_attributes.ml`](test/test_attributes.ml) — deletes `normalizeAttributes`, `cloneAttributes` and `areAttributesEqual` |
+| `painThreshold: 0` vs `null` meaning different things | `No_threshold \| Every_hit \| At_least of int` | ✅ [`test_pain_threshold.ml`](test/test_pain_threshold.ml) |
+| `toughness` is current and max at once; unclamped on import | `private { current; max }` with `0 <= current <= max` | ✅ [`test_toughness.ml`](test/test_toughness.ml) — quickcheck over any damage/heal sequence |
 | `Partial<Combatant>` shallow-merges any field to any value | `Member_patch.t` explicit variant | (compile-time) |
-| `armor: string` never parsed | `Unarmored \| Fixed \| Rolled \| Unparsed` total parser | `Armor.parse` totality property |
+| `armor: string` never parsed | `private { text; reduction : Reduction.t option }`, total parser | ✅ [`test_armor.ml`](test/test_armor.ml) — totality property over arbitrary strings |
 | Duplicate combatant ids | `Combatant.t Combatant_id.Map.t` | (compile-time) |
+| Four different identities all typed `string` | four generative `Core.String_id.Make` applications | ✅ (compile-time) [`test_ids.ml`](test/test_ids.ml) |
+| `round: 0`, produced by the empty state and every import path | `Round.t = private int >= 1` | ✅ [`test_round.ml`](test/test_round.ml) |
+| Attribute scores unbounded; `defense`, NPC count and adjustment bounds enforced only by input widgets | `Bounded_int.Make` — the bound is a property of the type | ✅ [`test_bounds.ml`](test/test_bounds.ml) |
+| An estimated damage die indistinguishable from recorded data | `Attack_profile.Source.t = From_data \| Estimated_from_resistance of Resistance.t` | ✅ [`test_attack_profile.ml`](test/test_attack_profile.ml) |
 | `version: 7` accepted and blind-cast | explicit version dispatch, error on unknown | `test_import_rejects_unknown_version` |
 | `damageInputs` grows without bound | `Bonsai.assoc` per-row state | (structural; note in README) |
-| `id.startsWith('pc_default_')` as a data property | `is_builtin : bool` field on the record | (compile-time) |
+| `id.startsWith('pc_default_')` as a data property | `is_builtin : bool` field on the record; ids are `Core.String_id` and carry nothing | Phase 3. Phase 1 records the removal in [`test_ids.ml`](test/test_ids.ml) |
 
 ---
 
