@@ -118,6 +118,44 @@ let convert_command =
        | Ok { world; normalizations = _ } -> print_endline (Codec.encode_string world))
 ;;
 
+let print_analysis encounter =
+  match Difficulty.analyze encounter with
+  | None ->
+    printf
+      "\nDifficulty\n  (a fight needs a player character and an enemy, both standing)\n"
+  | Some analysis ->
+    printf "\nDifficulty\n  %s\n" (Difficulty.to_string_hum analysis);
+    let low, high = analysis.p_bounds in
+    printf "  p(party wins) %.4f, in [%.4f, %.4f]\n" analysis.p_party_wins low high;
+    List.iter analysis.round_quantiles ~f:(fun (q, round) ->
+      printf "  %.0f%% of fights end by round %d\n" (q *. 100.) round);
+    printf "  method: %s\n" (Difficulty.Method.to_string_hum analysis.method_);
+    if not (List.is_empty analysis.caveats)
+    then (
+      printf "  caveats:\n";
+      List.iter analysis.caveats ~f:(fun c ->
+        printf "    - %s\n" (Caveat.to_string_hum c)))
+;;
+
+let analyze_command =
+  Command.basic
+    ~summary:"read a save file and say how the fight in it is likely to go"
+    ~readme:(fun () ->
+      "Small fights are solved exactly; large ones are simulated, and the output says\n\
+       which happened. Read the casualties before the probability: parties do not fight\n\
+       to the last member.")
+    (let%map_open.Command path = anon ("FILE" %: Filename_unix.arg_type) in
+     fun () ->
+       match Codec.decode_string (In_channel.read_all path) with
+       | Error errors ->
+         print_errors errors;
+         exit 1
+       | Ok { world; normalizations } ->
+         print_world world;
+         print_normalizations normalizations;
+         print_analysis world.encounter)
+;;
+
 let demo_command =
   Command.basic
     ~summary:"run a scripted fight and print it, with no file involved"
@@ -168,5 +206,9 @@ let () =
   Command_unix.run
     (Command.group
        ~summary:"Symbaroum combat tracker, without the browser"
-       [ "read", read_command; "convert", convert_command; "demo", demo_command ])
+       [ "read", read_command
+       ; "analyze", analyze_command
+       ; "convert", convert_command
+       ; "demo", demo_command
+       ])
 ;;

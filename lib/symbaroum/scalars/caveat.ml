@@ -19,7 +19,8 @@ let to_string_hum = function
   | Damage_die_estimated resistance ->
     [%string
       "No weapon recorded; damage estimated from the %{resistance#Resistance} band."]
-  | No_attack_profile -> "No Accurate score recorded, so this creature cannot attack."
+  | No_attack_profile ->
+    "No weapon recorded for this combatant; an average attack was assumed."
 ;;
 
 let quickcheck_generator =

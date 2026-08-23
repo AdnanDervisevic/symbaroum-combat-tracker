@@ -30,14 +30,16 @@ them**. This file is the only continuity. Trust it over any recollection.
 ## Current status
 
 ```
-Phase:        4 COMPLETE - codec, migration, CLI. **Phase 5 is next and unblocked.**
-Last session: 2026-08-23 - the import/export pipeline. An applicative
-              `Json_decoder` that accumulates errors, a frozen `Wire_v1`, a
-              `Wire_v2` with a derived writer, `Migrate`, `Domain_conv` (the one
-              place a `World.t` is built from outside data) and `Codec`. Plus
-              `bin/symbaroum_cli.ml` and a hand-built v1 sample at
-              `doc/samples/v1-export.json` that round-trips.
-              The properties found three more real bugs - see the decisions log.
+Phase:        5 COMPLETE - the probability model. **Phase 6 is next and unblocked.**
+              THE TWO DELIVERABLES NOW BOTH EXIST: `doc/model.md` is written, and the
+              illegal-state table below is ready to lift into the README in Phase 8.
+Last session: 2026-08-23 - `model/`: `pmf`, `hit_chance`, `fighter`, `attrition_dp`,
+              `combat_sim`, `difficulty`, plus `doc/model.md` and a `symbaroum
+              analyze` command. The DP matches its closed forms exactly
+              (0.952381 against the hand-derived recurrence) and agrees with a
+              40,000-sample simulation on every case. The focus-fire bias is
+              MEASURED rather than asserted: up to 11 points, and largest for a
+              fight already in progress.
               THE REPO IS at `~/symbaroum-combat-tracker` (ext4, in WSL2). The tree at
               `C:\Users\adnan\symbaroum-combat-tracker` is STALE at f7662d0 - never commit
               to it. Windows reaches the live repo at
@@ -45,11 +47,12 @@ Last session: 2026-08-23 - the import/export pipeline. An applicative
               Pinned: ocaml 5.2.0, core v0.16.2, bonsai v0.16.0 (**Proc style**),
               js_of_ocaml 5.9.1, dune 3.23.1, ocamlformat 0.29.0, yojson 3.0.0.
               `virtual_dom` pins the train to v0.16 - do not bump `core` to v0.17.
-Next action:  Start **Phase 5 - the probability model**. THIS IS THE ONE THAT MATTERS;
-              do not cut it. First task: `model/pmf.ml` (a `float array`, exact
-              convolution) and `model/hit_chance.ml` (every Symbaroum rule in ONE
-              function, so a rules correction is a one-line diff). Then
-              `attrition_dp.ml`, `combat_sim.ml`, `difficulty.ml`, and `doc/model.md`.
+Next action:  Start **Phase 6 - the Bonsai skeleton**. Read-only, real data, and
+              reuse `src/App.css` and `src/index.css` VERBATIM with the same class
+              names, so the UI phase is a pure logic port with a side-by-side
+              screenshot at the end of it. Bonsai is **v0.16 Proc style**
+              (`Bonsai.Computation.t` / `Bonsai.Value.t`), NOT Cont style - follow
+              `bonsai/examples/` at the pinned tag, not blog posts.
               Build from the repo root inside WSL. Green means all four of:
                 dune build @fmt && dune build -p symbaroum && dune runtest && dune build
 ```
@@ -130,6 +133,11 @@ of rationale.
 | 2026-08-23 | **`Wire_v2`'s `name_counter` is an `option`, not a possibly-empty list** | `None` (field absent) means "this save predates the counter, rebuild it from the names"; `Some []` means "the counter is empty, leave it alone". Collapsing the two made a fight whose only combatant is an unnamed NPC come back with a counter it did not have. Same class of bug as everything else in this port -- two meanings sharing one representation -- found in the codec's own wire type. |
 | 2026-08-23 | **`bin/` is its own opam package, `symbaroum_cli`** | It depends on `core_unix` (C stubs, no JavaScript), which is fine for a headless binary and forbidden in the core. But `dune build -p symbaroum` builds *every stanza belonging to the named package*, so leaving the executable in the `symbaroum` package kept the CI step green while making it prove nothing. **Measured, not assumed: it did exactly that.** A third package is the cheap way to keep the check honest. |
 | 2026-08-23 | **The derived writer picks the JSON shape, and that is accepted** | `[@@deriving yojson_of]` renders `name_counter` as `[["Goblin", 7]]` rather than `{"Goblin": 7}`. Uglier than a hand-written encoder would be, and worth it: the alternative is two hand-written halves that agree only as long as somebody remembers to make them. Three sum types *are* hand-written in both directions -- allegiance above all -- because there the shape is a design decision rather than boilerplate. The round-trip property is what holds writer and reader together either way. |
+| 2026-08-23 | **The model starts from *current* toughness, not maximum** | A GM asks "how does this go" from the middle of a fight, with half the party already hurt. This costs the focus-fire reduction nothing: it needs later members to be at their *starting* value, and their starting value is whatever they have when the question is asked. A combatant already at zero is dropped from both sides. |
+| 2026-08-23 | **A combatant with no weapon gets an average one, and a caveat** | The app records no weapon data for anybody, and the four shipped characters have no attributes either. A model that refused to guess would report that every party loses every fight -- not a cautious answer, a useless one. So Accurate defaults to 10 and the die to the resistance-band prior (`1d8` with no band), and **every substitution appears in `caveats`**. `Caveat.No_attack_profile` was reworded to say what the model does rather than claiming the creature cannot attack, because the old text contradicted the behaviour. |
+| 2026-08-23 | **The clamp means no fight is ever certain** | A natural 1 always hits and a natural 20 always misses, so the roll-under target is clamped to `[1, 19]` and `p_hit` to `[0.05, 0.95]`. The plan's closed-form anchor assumed `p_hit = 1` was reachable; it is not, and the honest anchor is the recurrence `p / (1 - (1-p)^2)` = **0.952381**, which the DP reproduces exactly. |
+| 2026-08-23 | **`Weakest_first` is the largest known bias, and it applies to the case GMs ask about** | The targeting table shows `Weakest_first` equal to `Focus_in_order` on every row where both sides start at full health -- focusing in order makes the current target the weakest anyway. They diverge only when a side starts already hurt, and there the difference is **11 points**. That is exactly the fight-in-progress case, so it is stated prominently in `doc/model.md` rather than buried. Found by adding a case with unequal starting toughness after noticing the third column was identical to the first. |
+| 2026-08-23 | **`bin/symbaroum_cli.ml` gained an `analyze` command** | The whole pipeline in one line: a v1 React export migrates, normalizes and comes out as an exact difficulty verdict with a rigorous bound. It is also the reproduction instruction at the bottom of `doc/model.md`. |
 | 2026-08-23 | Added `caveat.ml` and `initiative.ml`, neither in the plan | `Caveat.t` was scheduled for Phase 5, but Phase 2 is where most caveats are *discovered*, so it is one shared vocabulary rather than one type per phase. `Initiative.t` bounds `0 .. 99` a field the React app coerces with `Number(...) \|\| 0`, where a negative value silently reorders the descending sort. |
 | 2026-08-23 | **`dune build -p symbaroum` does not catch dev-profile warnings** | `bounded_int.mli` passed the release build and failed `dune build` with warning 67 (unused functor parameter; fixed with `Make (_ : Arg)`). The release profile relaxes warnings, so a green `-p` build proves the core is JS-free and proves nothing about warnings. This is why "green" means all four checks and is never shorthand for any one of them. |
 
@@ -709,23 +717,37 @@ On disk: keep *reading* the five `sct.v1.*` keys forever; write one consolidated
 
 ---
 
-## Phase 5 — Probability model  ⏱ 2–4 days — **DO NOT CUT THIS**
+## Phase 5 — Probability model  ⏱ 2–4 days — ✅ COMPLETE (2026-08-23)
 
 This is the centerpiece and the artifact you actually want read. It replaces the heuristic at
 [EncounterPanel.tsx:5-35](src/components/panels/EncounterPanel.tsx:5), whose weights
 (0.5 / 0.3 / 0.2) are derived from nothing.
 
-- [ ] `pmf.ml` — `float array`, exact convolution
-- [ ] `hit_chance.ml` — **all Symbaroum rules live in this one function**
-- [ ] `attrition_dp.ml` — power iteration over `Bigarray.Array1`
-- [ ] `combat_sim.ml` — Monte Carlo oracle, `Splittable_random`
-- [ ] `difficulty.ml` — `analyze`, budget dispatch, labels
-- [ ] `doc/model.md`
-- [ ] Closed-form anchor tests
-- [ ] Monotonicity property over 1,000 generated cases
-- [ ] DP↔MC agreement test with a **fixed seed**
-- [ ] Targeting-bias table (expect test)
-- [ ] `dune runtest` green
+- [x] [`pmf.ml`](lib/symbaroum/model/pmf.ml) — `float array`, exact convolution, all mass
+      at or below zero collapsed onto zero
+- [x] [`hit_chance.ml`](lib/symbaroum/model/hit_chance.ml) — **all Symbaroum rules live in
+      this one function**, so a rules correction is a one-line diff
+- [x] [`fighter.ml`](lib/symbaroum/model/fighter.ml) — not in the plan, and needed: the
+      model's view of a combatant, with every missing weapon filled in **and recorded as a
+      caveat** in one place rather than at each use
+- [x] [`attrition_dp.ml`](lib/symbaroum/model/attrition_dp.ml) — power iteration over
+      `Bigarray.Array1`, one `apply_attack` used in both directions
+- [x] [`combat_sim.ml`](lib/symbaroum/model/combat_sim.ml) — Monte Carlo oracle,
+      `Splittable_random`, three targeting policies
+- [x] [`difficulty.ml`](lib/symbaroum/model/difficulty.ml) — `analyze`, budget dispatch,
+      labels
+- [x] [`doc/model.md`](doc/model.md) — **one of the two deliverables. Written.**
+- [x] Closed-form anchor tests — the 1v1 recurrence at exactly 0.952381, the
+      cannot-be-hurt case at exactly 1, the mirror-image pair summing to 1
+- [x] Monotonicity properties — an extra foe, a tougher foe and a more accurate foe each
+      weakly decrease the party's chances
+- [x] DP↔MC agreement test with a **fixed seed** — five encounters, all within 4·stderr,
+      and the casualties agree to three decimals
+- [x] Targeting-bias table (expect test) — and it earned its keep: see the decisions log
+      on `Weakest_first`
+- [x] `dune runtest` green
+- [x] `symbaroum analyze FILE` in the CLI, which is also the reproduction instruction at
+      the bottom of `doc/model.md`
 
 ### Ship the exact DP; keep Monte Carlo as the oracle
 
@@ -943,7 +965,7 @@ README table can be lifted from it directly.
 | [x] | `test_typing_a_note_costs_one_undo` | reference-identity dedupe ([usePersistentHistory.ts:83](src/hooks/usePersistentHistory.ts:83)) |
 | [x] | `test_import_rejects_unknown_version` | `version` never compared to 1 ([exportImport.ts:44](src/utils/exportImport.ts:44)). Landed as the refusal table in [`test_codec.ml`](test/codec/test_codec.ml) |
 | [x] | `test_import_repairs_out_of_range_turn_index` | blind cast after the version check. Landed in [`test_codec.ml`](test/codec/test_codec.ml) |
-| [ ] | `test_difficulty_with_zero_defense_party` | `npcDefense / pcDefense` → `Infinity` ([EncounterPanel.tsx:19](src/components/panels/EncounterPanel.tsx:19)) |
+| [x] | `test_difficulty_with_zero_defense_party` | `npcDefense / pcDefense` → `Infinity` ([EncounterPanel.tsx:19](src/components/panels/EncounterPanel.tsx:19)). Landed in [`test_difficulty.ml`](test/model/test_difficulty.ml) |
 | [x] | `test_pain_threshold_uses_damage_dealt` | compares raw input, ignoring armour ([App.tsx:411](src/App.tsx:411)). Landed in Phase 1 as [`test/test_pain_threshold.ml`](test/test_pain_threshold.ml); see the decisions log for why the threshold uses post-armour, pre-clamp damage. |
 
 **On the ninth row** — the divide-by-zero is reachable with stock data but narrower than it
@@ -974,6 +996,8 @@ average defense — e.g. adding only Vigoi and/or Ymma. **Write the test to that
 | An import that fails reports one problem and stops | an applicative decoder — both halves of every `apply` run, so errors concatenate | ✅ [`test_codec.ml`](test/codec/test_codec.ml) — one file, four problems, four paths |
 | `toughness` is one number doing the job of a current and a maximum, so a wounded combatant's maximum is simply gone | `Toughness.t = private { current; max }`, and the migration recovers the maximum from the roster entry or the bestiary | ✅ [`test_codec.ml`](test/codec/test_codec.ml) |
 | `damageInputs` grows without bound | `Bonsai.assoc` per-row state | (structural; note in README) |
+| A difficulty heuristic that divides by the party's average defence, which is 0 for the shipped placeholders | an absorption probability; `Defense.t` cannot be 0 and nothing in the model is a ratio | ✅ [`test_difficulty.ml`](test/model/test_difficulty.ml) |
+| An estimated damage die indistinguishable from a recorded one *at the point the verdict is read* | `Difficulty.t` carries a `Caveat.t list` alongside the number | ✅ [`test_difficulty.ml`](test/model/test_difficulty.ml) |
 | An unbounded `past` after undo/redo ping-pong | capacity travels with the `Undo_history.t`, and one private `trim` is the only writer | ✅ [`test_bug_ledger.ml`](test/test_bug_ledger.ml) — and a property over any interleaving |
 | Every keystroke burns an undo slot (reference-identity dedupe) | `push ~equal ~key` — structural equality, and a key naming the field | ✅ [`test_bug_ledger.ml`](test/test_bug_ledger.ml) |
 | `id.startsWith('pc_default_')` as a data property | `is_builtin : bool` field on the record; ids are `Core.String_id` and carry nothing | ✅ landed with `character.ml` in Phase 2; [`test_ids.ml`](test/scalars/test_ids.ml) records why an id carries nothing |

@@ -26,7 +26,11 @@ type t =
   (** The damage die was invented from the creature's resistance band. See
           {!Symbaroum.Attack_profile.damage_prior}. *)
   | No_attack_profile
-  (** No Accurate score, so the creature cannot be given an attack at all. *)
+  (** The combatant records no weapon, which is every player character in
+          the shipped roster, so {!Symbaroum.Fighter} assumed an average one. A
+          model that refused to guess here would report that every party loses
+          every fight, which is not a cautious answer but a useless one -- so it
+          guesses, and says so, which is the whole purpose of this type. *)
 [@@deriving compare, equal, sexp_of, quickcheck]
 
 (** A sentence for the UI. *)

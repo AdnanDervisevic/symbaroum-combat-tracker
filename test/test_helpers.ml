@@ -38,7 +38,10 @@ let combatant
       ?(pain_threshold = Pain_threshold.no_threshold)
       ?(armor = Armor.unarmored)
       ?(prone = false)
+      ?(flanked = false)
       ?(attributes = Attributes.empty)
+      ?attack
+      ?(defense = Or_error.ok_exn (Defense.of_modifier 0))
       ~id
       ~name:n
       ~initiative:init
@@ -49,15 +52,24 @@ let combatant
   ; name = name n
   ; initiative = initiative init
   ; toughness
-  ; defense = defense 0
+  ; defense
   ; armor
   ; pain_threshold
   ; prone
-  ; flanked = false
+  ; flanked
   ; attributes
-  ; attack = None
+  ; attack
   ; note = ""
   }
+;;
+
+(** An attack profile from the dice notation the app already parses, for the
+    model tests, where the weapon is the whole point. *)
+let attack ?(source = Attack_profile.Source.From_data) ~accurate ~damage () =
+  Attack_profile.create
+    ~accurate:(Attribute_value.of_int_exn accurate)
+    ~damage:(Option.value_exn (Dice.parse damage) ~message:[%string "bad dice %{damage}"])
+    ~source
 ;;
 
 (* {1 Printers} *)
