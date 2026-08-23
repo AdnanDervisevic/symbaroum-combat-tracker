@@ -81,8 +81,15 @@ val current_id : t -> Ids.Combatant_id.t option
     type could not express. *)
 val turn_index : t -> int option
 
-(** Appends, in order. Ids already present are skipped. The counter is passed in
-    because the caller is the one that took the numbers out of it. *)
+(** Appends, in order. An id already in the fight is skipped, and so is one that
+    appears twice within [additions] itself -- this is total for any list, which
+    is what the [Map] behind {!Active} needs and what a caller building ids from
+    a counter cannot be trusted to guarantee. {!Symbaroum.World} rejects a batch
+    with a repeat rather than relying on the skip, because adding two NPCs when
+    three were asked for is not a silence anyone wants.
+
+    The counter is passed in because the caller is the one that took the numbers
+    out of it. *)
 val add : t -> name_counter:Name_counter.t -> Combatant.t list -> t
 
 (** Removing the combatant whose turn it is moves the cursor to the next one, or

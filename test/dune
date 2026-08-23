@@ -1,3 +1,8 @@
+; Laid out to mirror lib/symbaroum, for the same reason and with the same
+; caveat: the subdirectories are for a reader, and module names stay flat.
+
+(include_subdirs unqualified)
+
 (library
  (name symbaroum_test)
  (inline_tests)

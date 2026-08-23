@@ -111,8 +111,15 @@ let apply t (command : Action.t) =
       , [] )
   | Add_npcs { draft; ids; bestiary_id; at } ->
     let wanted = Npc_count.to_int draft.count in
+    (* Both halves of the same contract: the caller supplies the ids, so the
+       caller has to supply as many as it asked for and no two the same.
+       {!Encounter.add} would survive a repeat by dropping it, but adding two
+       goblins when three were asked for is not a repair anyone wants
+       silently. *)
     if List.length ids <> wanted
     then rejected t "The number of ids does not match the number of NPCs asked for"
+    else if List.contains_dup ids ~compare:Ids.Combatant_id.compare
+    then rejected t "Two of the new NPCs were given the same id"
     else (
       let name_counter, names =
         Npc_draft.names draft ~name_counter:(Encounter.name_counter t.encounter)

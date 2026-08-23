@@ -190,11 +190,22 @@ let create ~members ~turn_index ~round ~name_counter =
 
 let add t ~name_counter additions =
   let existing = members t in
-  let taken =
-    Ids.Combatant_id.Set.of_list (List.map existing ~f:(fun (c : Combatant.t) -> c.id))
-  in
+  (* Against a set that grows as the batch is walked, not a fixed one: an id
+     repeated {i within} [additions] is already taken by the time the second copy
+     is reached. Filtering against the existing members alone was enough to make
+     [Empty] raise out of [Map.of_alist_exn] and -- worse, because it was
+     silent -- to leave [Active] holding an id in the order that the member map
+     did not have. A property test found it; see
+     [test/aggregates/test_encounter.ml]. *)
   let additions =
-    List.filter additions ~f:(fun (c : Combatant.t) -> not (Set.mem taken c.id))
+    List.folding_map
+      additions
+      ~init:
+        (Ids.Combatant_id.Set.of_list
+           (List.map existing ~f:(fun (c : Combatant.t) -> c.id)))
+      ~f:(fun taken (c : Combatant.t) ->
+        if Set.mem taken c.id then taken, None else Set.add taken c.id, Some c)
+    |> List.filter_opt
   in
   match t with
   | Empty _ -> of_ordered ~ordered:(existing @ additions) ~round:Round.first ~name_counter

@@ -30,9 +30,15 @@ type t =
       }
 [@@deriving compare, equal, sexp_of]
 
+(* The fields hold what was on the wire, which is zero-based. These strings are
+   read by a GM, who has never seen a zero-based turn: the UI counts "turn 3 of
+   5". So the numbers are shifted here, once, at the point where they stop being
+   data and start being a sentence. *)
+let turn n = Int.to_string (n + 1)
+
 let to_string_hum = function
   | Turn_index_clamped { given; used } ->
-    [%string "Turn %{given#Int} is out of range; moved to %{used#Int}."]
+    [%string "There is no turn %{turn given}; moved to turn %{turn used}."]
   | Round_clamped { given; used } ->
     [%string "Round %{given#Int} is not a round; set to %{used#Int}."]
   | Duplicate_character_id { id } ->
@@ -42,8 +48,16 @@ let to_string_hum = function
   | Orphan_player_character { name; missing } ->
     [%string "%{name} points at character %{missing}, which is gone; demoted to an NPC."]
   | Name_counter_rebuilt { highest } ->
-    let types = List.length highest in
-    [%string "Rebuilt the auto-naming counter for %{types#Int} monster types."]
+    (* Naming the marks rather than counting them. "for 1 monster types" was
+       both ungrammatical and useless: what a GM wants to know is that the next
+       goblin will be Goblin 8. *)
+    let marks =
+      String.concat
+        ~sep:", "
+        (List.map highest ~f:(fun (monster_type, n) ->
+           [%string "%{monster_type} %{n#Int}"]))
+    in
+    [%string "Rebuilt the auto-naming counter from %{marks}."]
   | Value_clamped { field; given; used } ->
     [%string "%{field} %{given#Int} is out of range; clamped to %{used#Int}."]
   | Field_unreadable { field; value } ->

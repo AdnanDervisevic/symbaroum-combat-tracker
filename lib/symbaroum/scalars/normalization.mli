@@ -19,6 +19,9 @@ type t =
       { given : int
       ; used : int
       }
+  (** Both zero-based, as they arrive on the wire. {!to_string_hum} shifts
+          them, because the UI counts "turn 3 of 5" and a GM has never seen a
+          turn zero. *)
   | Round_clamped of
       { given : int
       ; used : int
