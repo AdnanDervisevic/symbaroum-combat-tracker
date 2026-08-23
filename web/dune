@@ -1,0 +1,17 @@
+(executable
+ (name main)
+ (libraries core bonsai.web symbaroum)
+ (preprocess
+  (pps ppx_jane js_of_ocaml-ppx))
+ (modes js))
+
+; The web deliverable is a static bundle, not an installable binary, so the
+; package's content is the built JS plus its host page. This also makes
+; `dune build -p symbaroum_web` mean something in CI.
+
+(install
+ (package symbaroum_web)
+ (section share)
+ (files
+  (main.bc.js as www/main.bc.js)
+  (index.html as www/index.html)))

@@ -7,5 +7,8 @@ open! Expect_test_helpers_core
    start. *)
 let%expect_test "upstream is the React app on master" =
   print_s [%sexp (Symbaroum.Version.upstream : Symbaroum.Version.upstream)];
-  [%expect {| ((branch master) (app symbaroum-combat-tracker)) |}]
+  [%expect
+    {|
+    ((branch master)
+     (app    symbaroum-combat-tracker)) |}]
 ;;

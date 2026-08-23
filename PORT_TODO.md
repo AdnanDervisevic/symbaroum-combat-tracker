@@ -30,13 +30,22 @@ them**. This file is the only continuity. Trust it over any recollection.
 ## Current status
 
 ```
-Phase:        0 — Toolchain spike — re-running inside WSL2. Ubuntu is up; opam not yet installed.
-Last session: 2026-08-23 — WSL2 + Ubuntu 26.04 LTS working (32 cores, 15 GB, 955 GB free).
-              Measured `/mnt/c` at ~78x slower than ext4 for dune-shaped I/O and decided
-              the build layout because of it (see §0.1c). Native Windows opam is abandoned.
-Next action:  Work through §0.1c. The FIRST item is a human step — `sudo apt install ...`
-              needs a password a tool shell cannot supply. Everything after it is automatable.
-              Do NOT start Phase 1 until a Bonsai hello-world renders in a browser (§0.2).
+Phase:        0 COMPLETE ✅ — toolchain proven end to end. **Phase 1 is next and unblocked.**
+Last session: 2026-08-23 — Bonsai hello-world renders in a browser with no console errors,
+              linking `bonsai.web` and the `symbaroum` core library in one binary.
+              All four checks green: @fmt, -p symbaroum, runtest, build.
+              THE REPO MOVED to `~/symbaroum-combat-tracker` (ext4, in WSL2); `/mnt/c` is
+              abandoned because `dune promote` silently no-ops there. The tree at
+              `C:\Users\adnan\symbaroum-combat-tracker` is STALE at f7662d0 — never commit
+              to it. Windows reaches the live repo at
+              `\wsl.localhost\Ubuntu\home\adnan\symbaroum-combat-tracker`.
+              Pinned: ocaml 5.2.0, core v0.16.2, bonsai v0.16.0 (**Proc style**),
+              js_of_ocaml 5.9.1, dune 3.23.1, ocamlformat 0.29.0.
+              `virtual_dom` pins the train to v0.16 — do not bump `core` to v0.17.
+Next action:  Start **Phase 1 — scalars and ids** (§ below). First module: `ids.ml`/`.mli`
+              via `Identifiable.Make`. Build with `./scripts/dune.sh` or plain `dune` from
+              the repo root inside WSL. Green means all four of:
+                dune build @fmt && dune build -p symbaroum && dune runtest && dune build
 ```
 
 ---
@@ -83,14 +92,17 @@ of rationale.
 | 2026-08-22 | **CONTRADICTION FOUND** (resolved two rows below). Native Windows opam cannot host Core or Bonsai. | See "Phase 0 findings" and "Open questions". This is the first time the plan has been proven wrong about something load-bearing. |
 | 2026-08-22 | **RESOLVED: use WSL2. This supersedes the "native Windows opam" decision above.** | Asked the human, who chose WSL2 over the Base-instead-of-Core alternative. This restores the plan exactly as approved — `Core`, `Bonsai`, `expect_test_helpers_core`, `virtual_dom`, `Fdeque` all become available again. Nothing else in this file needs rethinking; only Phase 0 gets re-run, inside Ubuntu. |
 | 2026-08-22 | The native Windows opam switch (`_opam/` at the repo root) is **abandoned, not deleted** | It is gitignored and costs nothing to leave. Deleting it is a Phase 8 tidy-up, not a blocker. Note it holds no `core`, so it cannot be reused. |
-| 2026-08-22 | WSL was already present; only **Virtual Machine Platform** was disabled | `wsl --install --no-distribution` enabled it and returned success, but the change **needs a reboot**. `HypervisorPresent` reads `True` while `VirtualizationFirmwareEnabled` reads `False` — that is the normal masked reading from inside a running hypervisor, **not** a firmware problem. Don't send anyone into the BIOS over it. |
-| 2026-08-23 | **The repo stays canonical on Windows.** Only `_build` and the opam switch move into the Linux filesystem. | Measured: `/mnt/c` is ~78x slower than ext4 for dune-shaped I/O (300 small file creates: 465 ms vs 6 ms). But a second clone in `~` means two working trees to keep in sync and a real chance of committing from the wrong one. Splitting the difference — sources on 9p (read-mostly, small project), build output on ext4 via `DUNE_BUILD_DIR`, and a **named global switch** instead of a local `_opam/` — gets nearly all the speed with none of the sync risk. Revisit with a measurement if builds get painful. |
-| 2026-08-23 | Ubuntu **26.04 LTS**, not the plan's unstated assumption | Whatever `wsl --install -d Ubuntu` shipped. Newer than expected; if an opam package needs an older glibc or a missing distro package, suspect this first. |
+| 2026-08-22 | WSL was already present; only **Virtual Machine Platform** was disabled | `\wsl --install --no-distribution` enabled it and returned success, but the change **needs a reboot**. `HypervisorPresent` reads `True` while `VirtualizationFirmwareEnabled` reads `False` — that is the normal masked reading from inside a running hypervisor, **not** a firmware problem. Don't send anyone into the BIOS over it. |
+| 2026-08-23 | ~~The repo stays canonical on Windows.~~ **REVERSED the same day — see the next row.** | Original reasoning, kept because the *mistake* is the instructive part: `/mnt/c` measured ~78x slower than ext4 for dune-shaped I/O, but a second tree looked like the bigger risk, so sources stayed on 9p with only `_build` moved off. **The error was benchmarking the filesystem without testing that the workflow actually functions on it.** Speed was never the problem. |
+| 2026-08-23 | **The repo lives in ext4 at `~/symbaroum-combat-tracker`. `/mnt/c` is abandoned for this work.** | **`dune promote` silently no-ops on `/mnt/c`** — exit 0, no error, file unchanged. Proven by copying the identical tree to ext4, where it promotes first try. Not a permissions problem: `metadata,uid=1000,gid=1000` was added to `/etc/wsl.conf`, WSL restarted, ownership confirmed correct as `adnan:adnan` — **and promote still no-opped**. The cause is dune's sandbox/`.corrected` propagation over 9p, not ownership. This is disqualifying rather than annoying: ppx_expect promotion is the core loop, the plan leans on it for the 86-preset golden dump, the combat transcript, the decoder-error corpus and the difficulty table, and it **fails invisibly** — a green-looking run that silently discards the correction is worse than any slowdown. Windows reaches the repo at `\wsl.localhost\Ubuntu\home\adnan\symbaroum-combat-tracker`; measured ~1.5x slower reads, `git status` 41 ms, `grep` 68 ms — fine. Ratified by the human. |
+| 2026-08-23 | `.gitattributes` forces `eol=lf` | Committing from Windows was CRLF-converting every OCaml source. With the tree readable from both sides, the two views must not be able to disagree, and ocamlformat/dune must never be handed CRLF. |
+| 2026-08-23 | **`bonsai` pins the whole Jane Street train to v0.16** | Installing `virtual_dom` downgraded 55 packages (`core` v0.17.2 → v0.16.2, `base` v0.17.3 → v0.16.5, and the entire ppx set). v0.16 is perfectly idiomatic, so this costs nothing — but **do not "helpfully" bump `core` to v0.17**, because it will silently take the UI stack with it. |
+| 2026-08-23 | Ubuntu **26.04 LTS**, not the plan's unstated assumption | Whatever `\wsl --install -d Ubuntu` shipped. Newer than expected; if an opam package needs an older glibc or a missing distro package, suspect this first. |
 | 2026-08-23 | `sudo` needs a password → **`apt` steps are permanent human hand-offs** | Not fixable from a tool shell, and passwords must not be handled by one. Structure future sessions so all `apt` work is batched into a single command the human runs once, rather than discovered piecemeal. |
 
 ---
 
-## Phase 0 — Toolchain spike  ⏱ ½ day
+## Phase 0 — Toolchain spike  ⏱ ½ day — ✅ COMPLETE (2026-08-23)
 
 **This phase exists to fail fast.** It is the only phase that can invalidate the plan.
 The machine has no opam, no OCaml, no dune, no Node, and no WSL distribution — only Git and
@@ -197,8 +209,8 @@ that mess silently produced empty output once already.
 
 **Prerequisites (Windows side) — DONE:**
 
-- [x] `wsl --install --no-distribution` enabled Virtual Machine Platform (needed a reboot)
-- [x] Rebooted; `wsl --status` no longer complains about virtualisation
+- [x] `\wsl --install --no-distribution` enabled Virtual Machine Platform (needed a reboot)
+- [x] Rebooted; `\wsl --status` no longer complains about virtualisation
 - [x] Ubuntu **26.04 LTS** installed, WSL2, kernel 6.18.33.2. 32 cores, 15 GB RAM, 955 GB free.
 
 **Environment facts, measured:**
@@ -210,50 +222,120 @@ that mess silently produced empty output once already.
 - **`/mnt/c` is ~78× slower than the Linux filesystem** for the small-file I/O dune does:
   300 file creates took **465 ms** on `/mnt/c` vs **6 ms** on `~`. Measured, not assumed.
 
-**Decided (see decisions log): the repo stays canonical on Windows; only build output and the
-switch live in the Linux filesystem.** So:
+**Decided: the repo lives in the Linux filesystem at `~/symbaroum-combat-tracker`.**
+`/mnt/c` is abandoned for this work. An earlier decision the same day said the opposite; it
+was reversed after testing, and both rows are kept in the decisions log because the mistake
+is the instructive part.
 
-- The Windows working tree at `/mnt/c/Users/adnan/symbaroum-combat-tracker` is the one source
-  of truth. Windows-side editors and file tools keep working normally; no second clone to
-  keep in sync, and no chance of committing from the wrong copy.
-- `export DUNE_BUILD_DIR=$HOME/build/sct` keeps `_build/` off the 9p mount.
-- Use a **named global switch**, not a local `_opam/` in the repo, for the same reason.
-- Source reads still cross 9p. For a project this size that is expected to be fine.
-  **If builds become painful, re-measure and switch to a `~/symbaroum-combat-tracker` clone**
-  with the Windows tree as a git remote — and record that as a new decision row.
+- **`dune promote` silently no-ops on `/mnt/c`.** Exit 0, no error, source file unchanged.
+  The `.corrected` file never leaves dune's sandbox. This is not a permissions problem —
+  `metadata,uid=1000,gid=1000` was added to `/etc/wsl.conf` and WSL restarted, ownership
+  became a correct `adnan:adnan`, **and promote still no-opped**.
+- That is disqualifying, not merely annoying: ppx_expect promotion is the inner loop, and it
+  fails *invisibly*. A run that looks green while discarding the correction is worse than any
+  slowdown. Speed was never the real issue — the 78x measurement was a red herring that
+  nearly bought a broken layout.
+- Windows can still read and write the tree at
+  `\wsl.localhost\Ubuntu\home\adnan\symbaroum-combat-tracker` (~1.5x slower reads,
+  `git status` 41 ms, `grep` 68 ms). Use that for any Windows-side editor or tool.
+- **The stale checkout at `C:\Users\adnan\symbaroum-combat-tracker` is NOT canonical.** It
+  stops at commit `f7662d0`. Do not commit there; do not `git pull` from it. If it is ever
+  revived, re-clone from `origin` instead of trusting it.
+- Use a **named global switch** (`sct`), not a local `_opam/`.
+- `scripts/dune.sh` wraps the switch and `DUNE_BUILD_DIR` so none of this has to be
+  re-remembered. `DUNE_BUILD_DIR` is now optional — `_build` in ext4 is fine — but the
+  wrapper keeps it out of the tree anyway.
+
+**⚠️ General lesson, worth applying to the rest of this port:** benchmarking a tool is not the
+same as testing that it works. The filesystem decision was made from a clean 78x measurement
+and was still wrong, because nothing had actually exercised `dune promote` on it.
 
 **Inside Ubuntu:**
 
-- [ ] **HUMAN STEP (needs the sudo password):**
+- [x] **HUMAN STEP (needs the sudo password):**
       `sudo apt update && sudo apt install -y build-essential m4 unzip pkg-config bubblewrap rsync curl git ca-certificates libgmp-dev zlib1g-dev opam`
-- [ ] `opam init --bare --yes --shell-setup` — **sandboxing stays ON.** The earlier note here
+      → opam **2.5.0**, gcc **15.2.0**. A second hand-off was needed later for Bonsai's
+      depexts (`libffi-dev libssl-dev`); **batch these next time** — opam only reveals a
+      depext when the solver reaches that package, and with no stdin it aborts (exit 10)
+      rather than failing loudly.
+- [x] `opam init --bare --yes --shell-setup` — **sandboxing stays ON.** The earlier note here
       said to pass `--disable-sandboxing` "because bubblewrap is unreliable under WSL2". That
       was received wisdom, and it is wrong on this kernel: bubblewrap was tested directly
       (`bwrap --unshare-all --ro-bind / / ... /bin/true`) and works, with
       `max_user_namespaces=63276`. Do not weaken the sandbox without re-testing.
-- [ ] `opam switch create sct 5.2.0 --yes --no-install`  ← named, not local
-- [ ] `eval $(opam env --switch=sct --set-switch)`
-- [ ] `opam install -y core ppx_jane base_quickcheck expect_test_helpers_core yojson ppx_yojson_conv`
-- [ ] `opam install -y js_of_ocaml js_of_ocaml-ppx virtual_dom`
-- [ ] `opam install -y bonsai`  ← **note: NOT `bonsai_web`**, which is a library inside this
-      package, not a package. Kept as three transactions so a Bonsai failure does not roll
-      back and mask the core result — that split is what made the last spike diagnostic.
-- [ ] `opam install -y ocamlformat` and **pin the exact version** in the opam file, matching
-      `.ocamlformat`.
-- [ ] Record the **exact resolved versions** (`opam list core bonsai js_of_ocaml ocamlformat`)
-      here. The plan requires pinning `bonsai` and following `bonsai/examples/` from that
-      same release tag, because the API churned (Proc style → Cont style) and public docs lag.
-- [ ] Confirm `_build/` and `_opam/` are still gitignored (they are, from the Windows attempt)
+- [x] `opam switch create sct 5.2.0 --yes --no-install`  ← named, not local
+- [x] `eval $(opam env --switch=sct --set-switch)`
+- [x] `opam install -y core ppx_jane base_quickcheck expect_test_helpers_core yojson ppx_yojson_conv`
+      → **`core` v0.17.2 installed cleanly, including `base_bigstring` v0.17.0** — the exact
+      package marked `available: os != "win32"` that killed the native Windows attempt.
+      The toolchain reversal is vindicated here.
+- [x] `opam install -y js_of_ocaml js_of_ocaml-ppx virtual_dom`
+      → **this downgraded 55 packages to the v0.16 train** (`core` v0.17.2 → v0.16.2). See
+      the decisions log: `virtual_dom` requires `core v0.16`, so v0.16 is the project's
+      floor *and* ceiling. Do not bump `core` without rebuilding the UI stack.
+- [x] `opam install -y bonsai`  ← **note: NOT `bonsai_web`**, which is a library inside this
+      package, not a package. The importable library is `bonsai.web`. Kept as separate
+      transactions so a Bonsai failure could not roll back and mask the core result.
+      First attempt aborted (exit 10) on missing depexts `libffi-dev libssl-dev`, pulled in
+      via `ctypes-foreign` and `async_ssl`. **Bonsai also downgraded `dune` 3.24.2 → 3.23.1.**
+- [x] `opam install -y ocamlformat`; `.ocamlformat` pins `version=0.29.0` + `profile=janestreet`
+- [x] **Resolved versions — these are the pinned reality of the project:**
 
-### 0.2 Prove it
+      | package | version |
+      |---|---|
+      | ocaml | 5.2.0 |
+      | core | v0.16.2 |
+      | bonsai | v0.16.0 |
+      | virtual_dom | v0.16.0 |
+      | js_of_ocaml | 5.9.1 |
+      | dune | 3.23.1 |
+      | ocamlformat | 0.29.0 |
+      | opam | 2.5.0 |
 
-- [ ] `dune build` succeeds on a trivial `lib/` + `test/` skeleton
-- [ ] A Bonsai hello-world page builds and renders in a browser — **restored**, now that WSL2
-      makes Bonsai available again. This is the real Phase 0 exit gate.
+      Bonsai v0.16 is **Proc style**: `Bonsai.Computation.t` / `Bonsai.Value.t`, and
+      `Start.start ~bind_to_element_with_id`. It is *not* the newer Cont style with an
+      explicit `graph`. Follow `bonsai/examples/` from the v0.16.0 tag, never blog posts.
+      Verified against the installed `~/.opam/sct/lib/bonsai/web/start.mli`.
+- [x] `_build/` and `_opam/` gitignored; `.gitattributes` added forcing `eol=lf`
 
-### 0.3 Exit criterion
+### 0.2 Prove it — ✅ ALL GREEN
 
-**Do not start Phase 1 until 0.2 is green or a fallback is chosen and recorded here.**
+- [x] `dune build` succeeds on a `lib/` + `test/` skeleton
+      → `lib/symbaroum/version.{ml,mli}` (Core + `ppx_jane` deriving) and a `ppx_expect`
+      test through `Expect_test_helpers_core`.
+- [x] `dune runtest` green **and `dune promote` actually writes** — the check that exposed
+      the `/mnt/c` problem. Never treat runtest alone as proof; promote must be exercised.
+- [x] **A Bonsai hello-world builds and renders in a browser.** `web/main.ml` links
+      `bonsai.web` *and* the `symbaroum` core library in one binary and interpolates values
+      from the domain library into the DOM, so it proves the two coexist. Served from
+      `_build/default/web/` and confirmed rendering with **no console errors**.
+- [x] `dune build -p symbaroum` exits 0 — the core package really is JS-free.
+
+**Bundle size, measured (the plan estimated ~1.5–4 MB raw / 400–900 KB gzipped):**
+
+| profile | raw | gzip -9 |
+|---|---|---|
+| dev (default) | **23 MB** | 4.9 MB |
+| **release** | **875 KB** | **288 KB** |
+
+Release is *better* than the plan's estimate; dev is ~5x worse than its worst case. ⚠️ **Always
+quote release numbers.** A future session that measures the dev build will conclude the bundle
+is catastrophic and start cutting Core for Base — for nothing.
+
+### 0.3 Exit criterion — ✅ MET, no fallback needed
+
+**Phase 0 is complete.** All four checks green together:
+
+```
+dune build @fmt && dune build -p symbaroum && dune runtest && dune build
+```
+
+The fallbacks below were never needed and are kept only as history — WSL2 restored the plan
+as approved, so `Core` and `Bonsai` are both in play.
+
+~~Do not start Phase 1 until 0.2 is green or a fallback is chosen and recorded here.~~
+
+**0.2 is green. Phase 1 is unblocked.**
 
 Fallbacks, in order of preference:
 
@@ -263,7 +345,7 @@ Fallbacks, in order of preference:
 - **B.** Drop Bonsai, keep `js_of_ocaml` + `virtual_dom`. Much smaller dependency surface,
   `lib/` untouched, keeps most of the signal.
 - **C.** Ship core + CLI; leave React on `master` as the UI.
-- **D.** WSL2 (`wsl --install -d Ubuntu`, ~20 min). Ruled out by the user; last resort only
+- **D.** WSL2 (`\wsl --install -d Ubuntu`, ~20 min). Ruled out by the user; last resort only
   if fallback A's feedback loop proves intolerable.
 
 ---

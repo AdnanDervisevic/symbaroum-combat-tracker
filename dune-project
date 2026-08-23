@@ -32,7 +32,6 @@
 
 (package
  (name symbaroum_web)
- (allow_empty)
  (synopsis "Bonsai web UI for the Symbaroum combat tracker")
  (depends
   (ocaml
