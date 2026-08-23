@@ -31,6 +31,22 @@
   (expect_test_helpers_core :with-test)))
 
 (package
+ (name symbaroum_cli)
+ (synopsis "Headless front end for the Symbaroum combat engine")
+ (description
+  "Reads a save file, prints the world it describes and the corrections applied\
+   on the way in. Separate from the `symbaroum` package on purpose: it depends on\
+   `core_unix`, and `dune build -p symbaroum` has to stay a proof that the core\
+   does not.")
+ (depends
+  (ocaml
+   (>= 5.2.0))
+  (symbaroum
+   (= :version))
+  core
+  core_unix))
+
+(package
  (name symbaroum_web)
  (synopsis "Bonsai web UI for the Symbaroum combat tracker")
  (depends

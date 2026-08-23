@@ -12,6 +12,7 @@
 ;   aggregates/  -> scalars
 ;   data/        -> scalars, aggregates
 ;   transitions/ -> everything above
+;   codec/       -> everything above; the only place that parses or prints JSON
 ;
 ; The one boundary that *is* enforced is the package boundary: `model/` and this
 ; whole library must build with `-p symbaroum`, which has no UI library in scope.
@@ -21,6 +22,6 @@
 (library
  (name symbaroum)
  (public_name symbaroum)
- (libraries core base_quickcheck splittable_random)
+ (libraries core base_quickcheck splittable_random yojson)
  (preprocess
-  (pps ppx_jane)))
+  (pps ppx_jane ppx_yojson_conv)))

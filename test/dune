@@ -5,7 +5,11 @@
 
 (library
  (name symbaroum_test)
- (inline_tests)
+ ; [test_sample_files.ml] reads a real save off disk rather than a string
+ ; literal, so the file it reads has to be a declared dependency. Inline tests
+ ; run with this directory as their working directory, hence the `../`.
+ (inline_tests
+  (deps %{project_root}/doc/samples/v1-export.json))
  (libraries core base_quickcheck symbaroum expect_test_helpers_core)
  (preprocess
   (pps ppx_jane)))

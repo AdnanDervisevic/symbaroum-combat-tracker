@@ -30,27 +30,27 @@ them**. This file is the only continuity. Trust it over any recollection.
 ## Current status
 
 ```
-Phase:        3 COMPLETE - encounter, commands, undo. **Phase 4 is next and unblocked.**
-Last session: 2026-08-23 - the headless combat engine. 15 new modules across
-              `aggregates/` and `transitions/`, the six Phase 3 bug-ledger rows, a
-              combat transcript that reads like a combat log, and 20 quickcheck
-              properties. The library was reorganised into `scalars/`,
-              `aggregates/`, `transitions/`, `data/` under
-              `(include_subdirs unqualified)`, and `Command` was renamed `Action`
-              because `Core.Command` shadows it. The property tests found one real
-              port bug on their first run - see the decisions log.
+Phase:        4 COMPLETE - codec, migration, CLI. **Phase 5 is next and unblocked.**
+Last session: 2026-08-23 - the import/export pipeline. An applicative
+              `Json_decoder` that accumulates errors, a frozen `Wire_v1`, a
+              `Wire_v2` with a derived writer, `Migrate`, `Domain_conv` (the one
+              place a `World.t` is built from outside data) and `Codec`. Plus
+              `bin/symbaroum_cli.ml` and a hand-built v1 sample at
+              `doc/samples/v1-export.json` that round-trips.
+              The properties found three more real bugs - see the decisions log.
               THE REPO IS at `~/symbaroum-combat-tracker` (ext4, in WSL2). The tree at
               `C:\Users\adnan\symbaroum-combat-tracker` is STALE at f7662d0 - never commit
               to it. Windows reaches the live repo at
               `\wsl.localhost\Ubuntu\home\adnan\symbaroum-combat-tracker`.
               Pinned: ocaml 5.2.0, core v0.16.2, bonsai v0.16.0 (**Proc style**),
-              js_of_ocaml 5.9.1, dune 3.23.1, ocamlformat 0.29.0.
+              js_of_ocaml 5.9.1, dune 3.23.1, ocamlformat 0.29.0, yojson 3.0.0.
               `virtual_dom` pins the train to v0.16 - do not bump `core` to v0.17.
-Next action:  Start **Phase 4 - codec, migration, CLI**. First task: `json_decoder.ml`,
-              the applicative decoder, then `wire_v1.ml` (**frozen forever** - the
-              deployed app has real user data in `sct.v1.*`). Note `normalization.ml`
-              already landed in Phase 1, ahead of the plan, because `Encounter.create`
-              needs it. Build from the repo root inside WSL. Green means all four of:
+Next action:  Start **Phase 5 - the probability model**. THIS IS THE ONE THAT MATTERS;
+              do not cut it. First task: `model/pmf.ml` (a `float array`, exact
+              convolution) and `model/hit_chance.ml` (every Symbaroum rule in ONE
+              function, so a rules correction is a one-line diff). Then
+              `attrition_dp.ml`, `combat_sim.ml`, `difficulty.ml`, and `doc/model.md`.
+              Build from the repo root inside WSL. Green means all four of:
                 dune build @fmt && dune build -p symbaroum && dune runtest && dune build
 ```
 
@@ -123,6 +123,13 @@ of rationale.
 | 2026-08-23 | **`Encounter.add` dedupes the incoming batch against itself, and `World.apply` rejects a batch with a repeated id** | A port bug, not a React one, and the **first thing the Phase 3 property tests found**. `add` filtered `additions` against the members already in the fight but not against itself, so a batch carrying one id twice raised out of `Map.of_alist_exn` on an empty encounter -- and on a non-empty one did something quieter and worse, leaving an id in the turn order that the member map did not have. Both layers now hold, for different reasons: `add` is total for any list, which is what the `Map` behind `Active` needs; and `apply` refuses the batch outright, because adding two NPCs when three were asked for is not a silence anyone wants. Documented by `test/aggregates/test_encounter.ml`. **This is the entry to point at when asked what property testing bought.** |
 | 2026-08-23 | **`Normalization.to_string_hum` shifts turn numbers to one-based** | The fields hold what was on the wire, which is zero-based. The strings are read by a GM, who has never seen a zero-based turn -- the UI counts "turn 3 of 5". Reviewing the promoted expect output caught the message saying "moved to 2" beside a display reading "turn 3/3". The shift happens once, at the point where the number stops being data and starts being a sentence. `Name_counter_rebuilt` was reworded in the same pass: it said "for 1 monster types", which was ungrammatical and told the GM nothing; it now names the marks. |
 | 2026-08-23 | **`Test_helpers.describe_action` lives in the tests, not in `Action`** | The transcript needs one line of English per action. Putting it in the library would have been inventing a requirement to justify a function: the library owes the UI a way to *perform* an action, not to narrate one, and nothing outside the tests wants this rendering. If Phase 7 turns out to want an undo label, move it then. |
+| 2026-08-23 | **The codec lives in `lib/symbaroum/codec/`, and `to_domain` is its own module `Domain_conv`** | The plan named it `Wire_v2.to_domain`. Split because the two halves have different jobs: `Wire_v2` knows JSON and nothing about invariants, `Domain_conv` knows invariants and nothing about JSON. Keeping them apart is what lets a malformed file fail in one and a legal-but-wrong file fail in the other, and it keeps either file under 300 lines. |
+| 2026-08-23 | **`Json_decoder.int` accepts an integral float, and `Float.to_int` was a totality hole** | JavaScript has one number type and `JSON.stringify` writes `10` for `10.0`, so an integral float on the wire is an artefact of the format. The first cut used `Float.to_int`, which *raises* outside the int range -- so `{"version": 1e287}` crashed the decoder. The decoder-totality property found it on its first run. Now `Float.iround_towards_zero` plus an equality check answers "is it whole" and "does it fit" together. |
+| 2026-08-23 | **Unparsed armour is NOT a normalization** | The plan listed `Armor_unparsed` among the repairs. It is not one: `Armor.parse` is total and keeps the text verbatim, so `"scales"` goes in and `"scales"` comes out and nothing was corrected. Reporting it made an import that changed nothing announce "Loaded -- 3 corrections applied", and made the round-trip property fail on a file the app had just written. That the model cannot use `"scales"` is still worth showing a GM, but it is a property of the value -- ask `Armor.is_unparsed` -- not an event that happened during a load, and the query version stays true after an edit. The round-trip property is what settled this. |
+| 2026-08-23 | **An archived encounter keeps its orphaned player characters; the live one does not** | `World.invariant` covers the live encounter only, and `Restore_encounter` already drops combatants whose character is gone. So `Domain_conv` demotes orphans in the live encounter (`Demote_against` the roster) and leaves them alone in the archive (`Keep`) -- demoting inside a snapshot is rewriting history, and the repair belongs at the moment the combatant re-enters the world the invariant is about. Found by the round-trip property: clear a fight, delete a character who was in it, and the archive legitimately holds an orphan the file has to carry back unchanged. |
+| 2026-08-23 | **`Wire_v2`'s `name_counter` is an `option`, not a possibly-empty list** | `None` (field absent) means "this save predates the counter, rebuild it from the names"; `Some []` means "the counter is empty, leave it alone". Collapsing the two made a fight whose only combatant is an unnamed NPC come back with a counter it did not have. Same class of bug as everything else in this port -- two meanings sharing one representation -- found in the codec's own wire type. |
+| 2026-08-23 | **`bin/` is its own opam package, `symbaroum_cli`** | It depends on `core_unix` (C stubs, no JavaScript), which is fine for a headless binary and forbidden in the core. But `dune build -p symbaroum` builds *every stanza belonging to the named package*, so leaving the executable in the `symbaroum` package kept the CI step green while making it prove nothing. **Measured, not assumed: it did exactly that.** A third package is the cheap way to keep the check honest. |
+| 2026-08-23 | **The derived writer picks the JSON shape, and that is accepted** | `[@@deriving yojson_of]` renders `name_counter` as `[["Goblin", 7]]` rather than `{"Goblin": 7}`. Uglier than a hand-written encoder would be, and worth it: the alternative is two hand-written halves that agree only as long as somebody remembers to make them. Three sum types *are* hand-written in both directions -- allegiance above all -- because there the shape is a design decision rather than boilerplate. The round-trip property is what holds writer and reader together either way. |
 | 2026-08-23 | Added `caveat.ml` and `initiative.ml`, neither in the plan | `Caveat.t` was scheduled for Phase 5, but Phase 2 is where most caveats are *discovered*, so it is one shared vocabulary rather than one type per phase. `Initiative.t` bounds `0 .. 99` a field the React app coerces with `Number(...) \|\| 0`, where a negative value silently reorders the descending sort. |
 | 2026-08-23 | **`dune build -p symbaroum` does not catch dev-profile warnings** | `bounded_int.mli` passed the release build and failed `dune build` with warning 67 (unused functor parameter; fixed with `Make (_ : Arg)`). The release profile relaxes warnings, so a green `-p` build proves the core is JS-free and proves nothing about warnings. This is why "green" means all four checks and is never shorthand for any one of them. |
 
@@ -613,21 +620,52 @@ go untested **while looking tested**.
 
 ---
 
-## Phase 4 — Codec, migration, CLI  ⏱ 1–2 days
+## Phase 4 — Codec, migration, CLI  ⏱ 1–2 days — ✅ COMPLETE (2026-08-23)
 
-- [ ] `json_decoder.ml` — an `Applicative.S`. **Applicative, not monad — that is what makes
-      error *accumulation* possible. Say so in the doc comment.** `field`, `field_opt`,
-      `field_or`, `one_of`, `at` for JSON-path context, `all_errors`. ~120 lines, and one of
-      the two files a reviewer will read closely.
-- [ ] `wire_v1.ml` — mirrors [`src/types.ts`](src/types.ts) field-for-field including the
-      optional/nullable spellings. **Frozen forever**: the deployed app has real user data in `sct.v1.*`.
-- [ ] `wire_v2.ml` + `migrate.ml`
-- [ ] `normalization.ml`
-- [ ] `codec.ml`
-- [ ] `bin/symbaroum_cli.ml`
-- [ ] Decoder error-message expect tests against ~10 malformed blobs
-- [ ] `dune runtest` green
-- [ ] **Round-trip a real export from the deployed React app**
+- [x] [`json_decoder.ml`](lib/symbaroum/codec/json_decoder.ml) — an `Applicative.S`.
+      **Applicative, not monad — that is what makes error *accumulation* possible**, and the
+      `.mli` says so and writes `Let_syntax` out by hand so that the *absence* of `bind` is
+      visible in the interface. `field`, `field_opt`, `field_or`, `one_of`, `list`,
+      `validate`, `validate_or_error`. The plan's `at` combinator turned out to be
+      unnecessary: `field` and `list` extend the JSON path themselves and there is no other
+      way to descend.
+- [x] [`wire_v1.ml`](lib/symbaroum/codec/wire_v1.ml) — mirrors [`src/types.ts`](src/types.ts)
+      field for field, including the optional/nullable spellings. **Frozen forever.** The
+      eight attribute keys are spelled out rather than reusing `Attribute.of_key`, because
+      independence from the domain is the property that makes a format freezable. Also holds
+      the five `sct.v1.*` key names and a `Local_storage.load` that reads them through an
+      injected lookup — so Phase 7's browser binding is a shim, not a rewrite.
+- [x] [`wire_v2.ml`](lib/symbaroum/codec/wire_v2.ml) — derived writer, hand-written reader —
+      and [`migrate.ml`](lib/symbaroum/codec/migrate.ml)
+- [x] `normalization.ml` — **landed early, in Phase 1**, because `Encounter.create` needs it.
+      A plan deviation, logged here rather than worked around.
+- [x] [`domain_conv.ml`](lib/symbaroum/codec/domain_conv.ml) — the plan's `Wire_v2.to_domain`,
+      given its own module; see the decisions log
+- [x] [`codec.ml`](lib/symbaroum/codec/codec.ml) — version dispatch and the whole pipeline
+- [x] [`bin/symbaroum_cli.ml`](bin/symbaroum_cli.ml) — `read`, `convert`, `demo`. Its own
+      opam package, and the decisions log says why that is not bureaucracy.
+- [x] Decoder error-message expect tests —
+      [`test_json_decoder.ml`](test/codec/test_json_decoder.ml) and the malformed-blob table
+      in [`test_codec.ml`](test/codec/test_codec.ml)
+- [x] `dune runtest` green
+- [x] **A version 1 export round-trips** — [`doc/samples/v1-export.json`](doc/samples/v1-export.json),
+      pinned by [`test_sample_files.ml`](test/codec/test_sample_files.ml). See the open
+      question below: this file is hand-built from the React app's own
+      [`defaultCharacters.ts`](src/data/defaultCharacters.ts) and `types.ts`, not exported
+      from the live site, which is a human step still outstanding.
+
+### Properties proven in Phase 4
+
+| where | property |
+|---|---|
+| [`test_codec.ml`](test/codec/test_codec.ml) | **Round trip.** `decode (encode w) = Ok (w, [])` for any world reachable by a generated action script — with *no* normalizations, which is the strong form and the only thing holding the derived writer and the hand-written reader together |
+| " | **Decoder totality.** Arbitrary `Yojson.Safe.t` gives `Ok` or `Error` and never raises, and whatever it accepts satisfies `World.invariant`. `validateImportData` fails this catastrophically: it checks four fields and blind-casts |
+| " | **Normalization is a fixed point.** Re-reading a repaired file produces zero further repairs — asserted as an expect test on a deliberately broken v1 blob, and again on the sample file |
+
+The arbitrary-JSON generator draws its object keys from the format's own names
+(`version`, `characters`, `encounter`, `members`, …) rather than random strings, so it
+spends its time on shapes that get past the first field instead of being rejected at the
+root.
 
 ### Derive the writer, hand-write the reader
 
@@ -903,8 +941,8 @@ README table can be lifted from it directly.
 | [x] | `test_delete_character_repairs_cursor` | [App.tsx:114](src/App.tsx:114) prunes members, leaves `turnIndex` |
 | [x] | `test_redo_respects_capacity` | `redo` never slices `past` ([usePersistentHistory.ts:112](src/hooks/usePersistentHistory.ts:112)) |
 | [x] | `test_typing_a_note_costs_one_undo` | reference-identity dedupe ([usePersistentHistory.ts:83](src/hooks/usePersistentHistory.ts:83)) |
-| [ ] | `test_import_rejects_unknown_version` | `version` never compared to 1 ([exportImport.ts:44](src/utils/exportImport.ts:44)) |
-| [ ] | `test_import_repairs_out_of_range_turn_index` | blind cast after the version check |
+| [x] | `test_import_rejects_unknown_version` | `version` never compared to 1 ([exportImport.ts:44](src/utils/exportImport.ts:44)). Landed as the refusal table in [`test_codec.ml`](test/codec/test_codec.ml) |
+| [x] | `test_import_repairs_out_of_range_turn_index` | blind cast after the version check. Landed in [`test_codec.ml`](test/codec/test_codec.ml) |
 | [ ] | `test_difficulty_with_zero_defense_party` | `npcDefense / pcDefense` → `Infinity` ([EncounterPanel.tsx:19](src/components/panels/EncounterPanel.tsx:19)) |
 | [x] | `test_pain_threshold_uses_damage_dealt` | compares raw input, ignoring armour ([App.tsx:411](src/App.tsx:411)). Landed in Phase 1 as [`test/test_pain_threshold.ml`](test/test_pain_threshold.ml); see the decisions log for why the threshold uses post-armour, pre-clamp damage. |
 
@@ -932,7 +970,9 @@ average defense — e.g. adding only Vigoi and/or Ymma. **Write the test to that
 | `round: 0`, produced by the empty state and every import path | `Round.t = private int >= 1` | ✅ [`test_round.ml`](test/scalars/test_round.ml) |
 | Attribute scores unbounded; `defense`, NPC count and adjustment bounds enforced only by input widgets | `Bounded_int.Make` — the bound is a property of the type | ✅ [`test_bounds.ml`](test/scalars/test_bounds.ml) |
 | An estimated damage die indistinguishable from recorded data | `Attack_profile.Source.t = From_data \| Estimated_from_resistance of Resistance.t` | ✅ [`test_attack_profile.ml`](test/scalars/test_attack_profile.ml) |
-| `version: 7` accepted and blind-cast | explicit version dispatch, error on unknown | `test_import_rejects_unknown_version` |
+| `version: 7` accepted and blind-cast | explicit version dispatch, error on unknown | ✅ [`test_codec.ml`](test/codec/test_codec.ml) |
+| An import that fails reports one problem and stops | an applicative decoder — both halves of every `apply` run, so errors concatenate | ✅ [`test_codec.ml`](test/codec/test_codec.ml) — one file, four problems, four paths |
+| `toughness` is one number doing the job of a current and a maximum, so a wounded combatant's maximum is simply gone | `Toughness.t = private { current; max }`, and the migration recovers the maximum from the roster entry or the bestiary | ✅ [`test_codec.ml`](test/codec/test_codec.ml) |
 | `damageInputs` grows without bound | `Bonsai.assoc` per-row state | (structural; note in README) |
 | An unbounded `past` after undo/redo ping-pong | capacity travels with the `Undo_history.t`, and one private `trim` is the only writer | ✅ [`test_bug_ledger.ml`](test/test_bug_ledger.ml) — and a property over any interleaving |
 | Every keystroke burns an undo slot (reference-identity dedupe) | `push ~equal ~key` — structural equality, and a key naming the field | ✅ [`test_bug_ledger.ml`](test/test_bug_ledger.ml) |
@@ -1059,6 +1099,24 @@ Kept for the record, because the reasoning is worth not re-deriving:
 
 ### Non-blocking
 
+- [ ] **A real export from the deployed app — HUMAN STEP.** Phase 4's exit criterion says
+      "round-trip a real export". What exists is
+      [`doc/samples/v1-export.json`](doc/samples/v1-export.json), hand-built: the four
+      characters are verbatim from [`defaultCharacters.ts`](src/data/defaultCharacters.ts)
+      and every field spelling is taken from [`types.ts`](src/types.ts), so it is a faithful
+      stand-in — but it is a stand-in, and it cannot catch a field the React app writes that
+      nobody wrote down. **To close this:** open the live Vercel app, use some of it, click
+      Export, drop the file in `doc/samples/`, and run
+      `dune exec -- bin/symbaroum_cli.exe read doc/samples/<file>`. Every reported correction
+      should be explainable; anything unexplainable is a port bug. Worth doing before Phase 8.
+- [x] **What v1 actually persists — ANSWERED 2026-08-23.** Five keys, and the shapes differ
+      from the export file. `sct.v1.characters`, `sct.v1.encounter`, `sct.v1.bestiary`,
+      `sct.v1.encounterHistory`, `sct.v1.theme`. Two consequences worth carrying into Phase 7.
+      The export file has **no** encounter history, so a file and a browser hold different
+      subsets of the same state. And `usePersistentHistory` writes only `history.present`
+      ([usePersistentHistory.ts:71](src/hooks/usePersistentHistory.ts:71)) — **the undo past
+      is not persisted at all today**, so persisting a truncated past is a new feature rather
+      than parity, and should be described as one.
 - [ ] **Symbaroum to-hit formula** — `TN = Accurate_att + (10 − Defense_def)` clamped to `[1,19]`
       is a reconstruction, reasonably but not fully confident against the core book. Verify
       against the actual rules text if a copy is available. Prone and flanking modifiers are
