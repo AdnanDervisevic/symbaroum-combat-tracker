@@ -1,15 +1,4 @@
-(** Hit points: how much is left, and how much there was.
-
-    [toughness: number] in {{:src/types.ts} [types.ts]} is current and maximum at
-    once, so a wounded combatant is indistinguishable from a weaker healthy one.
-    The bound [0 <= current] is re-derived at three view-layer call sites
-    ({{:src/App.tsx} [App.tsx:407]},
-    {{:src/components/cards/CombatantCard.tsx} [CombatantCard.tsx:89]},
-    {{:src/components/cards/CharacterCard.tsx} [CharacterCard.tsx:52]}) and at
-    zero call sites on the import path, so an imported combatant can be at -40.
-
-    [max] is not decoration: the probability model needs it to define "down", and
-    the UI needs it to draw a health bar that means anything. *)
+(** Hit points: how much is left, and how much there was. *)
 
 open! Core
 

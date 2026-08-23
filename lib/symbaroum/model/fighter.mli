@@ -1,27 +1,4 @@
-(** A combatant as the model needs it, with every gap in the data filled in once
-    and written down.
-
-    {1 The app records no weapons}
-
-    Not for anybody. The four shipped player characters have
-    [attributes: null] and no weapon at all, so a model that refused to guess
-    would report that every party loses every fight -- which is not a cautious
-    answer, it is a useless one. So a missing Accurate becomes 10, the average
-    score, and a missing damage die becomes the [Ordinary] prior, {b and the
-    substitution goes in {!caveats}}. A number computed from an invented weapon
-    is not the same kind of number as one computed from a statblock, and the
-    difference has to survive all the way to the reader of the verdict.
-
-    {1 Toughness is where the fight is now, not where it started}
-
-    {!toughness} is the combatant's {i current} value. A GM asking "how does this
-    go" is asking from the middle of a fight, with half the party already hurt.
-    This costs the model nothing: the focus-fire reduction needs later members to
-    be at their {i starting} value, not at full health, and their starting value
-    is whatever they have when the question is asked.
-
-    A combatant already at zero is not a fighter at all and is dropped by
-    {!of_combatant}. *)
+(** A combatant as the model needs it, with every gap in the data filled in once and written down. *)
 
 open! Core
 

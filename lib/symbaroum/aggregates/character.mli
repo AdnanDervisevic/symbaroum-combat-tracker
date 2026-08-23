@@ -1,22 +1,4 @@
-(** A roster entry: a player character, edited on the Characters tab and copied
-    into the encounter when a fight starts.
-
-    The record is public rather than [private], which is a deliberate exception
-    to how the rest of this library is built. [private] exists to force
-    construction through a smart constructor that can reject an illegal
-    combination -- but there is no illegal combination here. Every field is
-    already a type that cannot hold a bad value, and no invariant relates one
-    field to another. Sealing the record would buy nothing and would cost the
-    functional-update syntax that the editing commands in Phase 3 are written
-    with.
-
-    {!is_builtin} is the field that replaces
-    {{:src/components/cards/CharacterCard.tsx} [CharacterCard.tsx:112]}, which
-    asks whether [id.startsWith('pc_default_')] to decide whether a character is
-    one of the four shipped ones. That is a data property smuggled into a name:
-    it is invisible to the type system, and it silently changes meaning the
-    moment an import renumbers ids. Ids here are {!Symbaroum.Ids.Character_id}
-    and carry nothing. *)
+(** A roster entry: a player character, edited on the Characters tab and copied into the encounter when a fight starts. *)
 
 open! Core
 

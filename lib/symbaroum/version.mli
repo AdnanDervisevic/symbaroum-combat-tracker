@@ -1,8 +1,4 @@
-(** Build identity for the OCaml port.
-
-    This module exists so the Phase 0 toolchain spike has something real to
-    compile: a [.ml]/[.mli] pair, a [Core] dependency, and a [ppx_jane]
-    derivation. If this builds, the toolchain is sound. *)
+(** Build identity for the OCaml port. *)
 
 open! Core
 

@@ -1,13 +1,4 @@
-(** The combat round counter, [1] or greater.
-
-    [round: 0] is representable in the React app and is actually produced: the
-    empty encounter starts there and every import path can restore it.
-
-    Note the deliberate asymmetry in {!prev}: it floors at {!first} rather than
-    failing, so stepping back from round 1 is a no-op. That makes
-    [prev (succ t) = t] hold everywhere, while [succ (prev first)] is not
-    [first]. The property test asserts that exception explicitly rather than
-    leaving it as folklore. *)
+(** The combat round counter, [1] or greater. *)
 
 open! Core
 

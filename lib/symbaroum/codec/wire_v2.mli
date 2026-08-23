@@ -1,44 +1,4 @@
-(** The save format this port writes.
-
-    v1 could not hold what the domain knows. It has one [toughness] where there
-    is a current and a maximum, no name counter (so auto-naming restarts on
-    reload), no attack profile (so the probability model's input is lost on the
-    way to disk), no [is_builtin] flag, and no archive of cleared encounters. So
-    there is a v2, and {!Symbaroum.Migrate} carries v1 forward into it.
-
-    {1 Derived writer, hand-written reader}
-
-    The records here derive their writer: encoding is total, so the mechanical
-    direction is the safe one to mechanise, and a hand-written writer for a
-    twelve-field record is boilerplate that can drift from the reader without
-    anybody noticing. Decoding is partial and has to pass through smart
-    constructors, so it is written out -- see {!Symbaroum.Json_decoder} for that
-    argument at length.
-
-    They also derive a full sexp round trip, [t_of_sexp] included, which is safe
-    here for the same reason: these are total records with no invariants, so a
-    deriver cannot build one that the domain would reject. It is used by the web
-    layer, where Bonsai's model type wants a sexp round trip and the domain types
-    deliberately have none -- so the model goes out through the wire types and
-    back in through the smart constructors, exactly as a save file does.
-
-    The consequence worth stating plainly: {b the deriver picks the JSON shape},
-    and in two places the shape it picks is uglier than one would choose by hand.
-    [name_counter] becomes [[["Goblin", 7]]] rather than [{"Goblin": 7}], and the
-    same for a combatant's known attributes. That is the price of the mechanical
-    writer and it is worth paying, because the alternative is two hand-written
-    halves that agree only as long as somebody remembers to make them. The
-    round-trip test is what holds the two halves together either way.
-
-    Three sum types {i do} have hand-written encoders --
-    {!Combatant.Allegiance}, {!Attack.t}'s provenance, and armour -- because
-    there the JSON shape is a decision rather than boilerplate. They are called
-    out where they appear.
-
-    {1 What is not here}
-
-    No theme: it is not part of {!Symbaroum.World.t}, deliberately, because it is
-    not undoable. The UI reads its own key. *)
+(** The save format this port writes. *)
 
 open! Core
 

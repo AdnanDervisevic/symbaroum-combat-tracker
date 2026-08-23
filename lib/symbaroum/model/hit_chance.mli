@@ -1,33 +1,13 @@
 (** Every rule the model knows about hitting, in one function.
 
-    That is the whole design of this module. The Symbaroum rules used here are a
-    {b reconstruction}, and a reconstruction is going to be wrong somewhere, so
-    the thing that matters is that correcting it is a one-line diff rather than a
-    search. Nothing else in {!Symbaroum.Attrition_dp} or
-    {!Symbaroum.Combat_sim} knows how a roll works.
-
-    {1 The rule as modelled}
-
-    Symbaroum rolls a d20 {i under} a target. An attack's target is the
-    attacker's Accurate, shifted by the defender's Defence expressed as a
-    modifier:
-
     {v
-      target  = Accurate_attacker + (10 - Defence_defender) + situation
-      p(hit)  = clamp target to [1, 19] / 20
+      target = Accurate_attacker + (10 - Defence_defender) + situation
+      p(hit) = clamp target to [1, 19] / 20
     v}
 
-    {!Symbaroum.Defense} stores the absolute roll-under value, so
-    [10 - Defence] is exactly {!Symbaroum.Defense.to_modifier}. The clamp is what
-    makes a natural 1 always hit and a natural 20 always miss, so no matchup is
-    ever certain in either direction.
-
-    {1 What is confident and what is not}
-
-    The shape of the formula is reasonably confident. The two situational
-    modifiers below are {b not verified against the core book} and are stated as
-    guesses in [doc/model.md]; they are named constants here so that a reader can
-    see their size and change them without reading any other file. *)
+    The rules are a {b reconstruction}. Keeping them in one function is what
+    makes correcting one a one-line diff; [doc/model.md] says which parts are
+    confident and which are guesses. *)
 
 open! Core
 

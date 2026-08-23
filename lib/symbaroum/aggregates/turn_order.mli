@@ -1,18 +1,4 @@
-(** A nonempty list with a cursor: who is up, who is before them, who is after.
-
-    This is the type that deletes the app's most-reachable illegal state.
-    {{:src/types.ts} [types.ts]} pairs [members: Combatant[]] with a separate
-    [turnIndex: number], so [{members: [], turnIndex: 5}] typechecks -- and is
-    actually produced by four paths: [handleImport], [restoreEncounter],
-    [deleteCharacter] (which prunes members without repairing the index) and any
-    hand-edited [localStorage]. Here the cursor is a position {i in} the
-    structure, so there is nothing to keep in sync and nothing to range-check.
-
-    Note what is deliberately {b not} in this type: the round number. It lives in
-    {!Symbaroum.Encounter} instead, which is what makes
-    {{:src/App.tsx} [App.tsx:340]} -- where sorting by initiative also resets the
-    round to 1 -- structurally impossible rather than merely fixed. {!sort_by}
-    cannot reach the round because it is not here to reach. *)
+(** A nonempty list with a cursor: who is up, who is before them, who is after. *)
 
 open! Core
 

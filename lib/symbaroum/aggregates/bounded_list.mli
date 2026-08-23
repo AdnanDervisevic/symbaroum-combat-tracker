@@ -1,12 +1,4 @@
-(** A list that keeps only its most recent [capacity] entries.
-
-    Two things in this app are "the last N of something" -- the encounter archive
-    (10) and the undo stack (50) -- and in the React app both enforce that at the
-    call site, with a [.slice(-MAX)] that one of the four writers forgot. See
-    {{:src/hooks/usePersistentHistory.ts} [usePersistentHistory.ts:112]}: [redo]
-    appends to [past] without slicing, so undo/redo ping-pong grows it without
-    bound. Making the capacity a property of the value means there is no call
-    site left to forget. *)
+(** A list that keeps only its most recent [capacity] entries. *)
 
 open! Core
 

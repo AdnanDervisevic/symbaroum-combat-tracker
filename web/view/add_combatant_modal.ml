@@ -1,22 +1,4 @@
-(** The Manage Combatants dialog: send player characters in, build NPCs, reuse a
-    stat block, bring a cleared fight back.
-
-    {1 The form holds strings, and that is the design}
-
-    {!Symbaroum.Npc_draft} says so in its own interface: [NpcDraft] in
-    {{:src/components/modals/AddCombatantModal.tsx} [AddCombatantModal.tsx]}
-    holds what the user typed, and [Npc_draft.t] holds what it parsed to. The
-    React app never makes that distinction, so [addNpc] coerces every field on
-    the way out -- [Number(x) || 0], [.trim() || "Light (d4)"] -- and a typo
-    becomes a zero that gets stored.
-
-    So {!Form.t} is a record of strings, which is what a form is, and
-    {!Form.to_draft} is the one place it becomes a value the encounter can hold.
-    A form that does not parse produces no draft and the Add button does nothing;
-    it does not produce a draft full of zeroes.
-
-    Being all strings also makes it a Bonsai model without anything having to
-    grow a [t_of_sexp] it should not have. *)
+(** The Manage Combatants dialog: send player characters in, build NPCs, reuse a stat block, bring a cleared fight back. *)
 
 open! Core
 open Bonsai_web

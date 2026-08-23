@@ -1,15 +1,4 @@
-(** Every transition the app can make, as data.
-
-    In the React app these are seventeen closures defined inside the [App]
-    component, each calling one or two [setState]s. As a variant they become
-    something a test can build a list of, a property test can generate, and the
-    undo stack can reason about.
-
-    {b Effects are arguments, not results.} A command that needs a fresh id or
-    the current time carries them, because a reducer that calls [uid()] or
-    [Date.now()] is not a function and cannot be tested by comparing outputs.
-    The impurity moves out to the one place that is allowed to have it -- the
-    event handler in the UI -- and everything downstream stays pure. *)
+(** Every transition the app can make, as data. *)
 
 open! Core
 

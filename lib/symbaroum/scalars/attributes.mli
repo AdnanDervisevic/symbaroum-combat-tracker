@@ -1,15 +1,4 @@
-(** A creature's full attribute block: a {i key-total} map from
-    {!Symbaroum.Attribute} to an optional score.
-
-    Key-total means every one of the eight attributes is always present as a
-    key; only its value is optional. That single representation deletes a pile
-    of states the React app permits. There, [attributes?: CharacterAttributes |
-    null] spells "this creature has no attributes" three ways ([undefined],
-    [null], [{}]) and each of the eight fields spells "unknown" three more
-    ([undefined], [null], missing). [normalizeAttributes], [cloneAttributes] and
-    [areAttributesEqual] in {{:src/utils/combatLogic.ts} [combatLogic.ts]} exist
-    solely to paper over that; all three vanish here, because [empty] is the one
-    spelling of "nothing known", copying is free, and [equal] is derived. *)
+(** A creature's full attribute block: a {i key-total} map from {!Symbaroum.Attribute} to an optional score. *)
 
 open! Core
 

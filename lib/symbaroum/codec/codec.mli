@@ -6,22 +6,7 @@
         -> Migrate.v1_to_v2                    (pure record shuffling)
         -> Domain_conv.to_domain               (smart constructors; the ONLY place)
              : World.t * Normalization.t list
-    v}
-
-    {1 What is an error and what is a repair}
-
-    Only structurally impossible input is an error: text that is not JSON, a
-    [members] that is not an array, a version this app does not know. Everything
-    else is repaired and reported. The line matters because the two want
-    different handling -- an error means "this file is not a save", a repair
-    means "loaded, with three corrections", and the React app's import path has
-    neither, since it validates four fields and then blind-casts.
-
-    That blind cast includes the version: [validateImportData]
-    ({{:src/utils/exportImport.ts} [exportImport.ts:44]}) checks that [version]
-    is a {i number} and never compares it to [1], so a file claiming version 7 is
-    accepted and cast to the v1 shape. Here an unknown version is refused by
-    name. *)
+    v} *)
 
 open! Core
 

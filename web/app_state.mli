@@ -1,30 +1,4 @@
-(** One state machine for the whole app.
-
-    {1 Why one}
-
-    The React app keeps five stores: [characters], [encounter] (with its own undo
-    history), [encounterHistory], [bestiary] and [theme]. Four of them hold the
-    same fight. [addNpc] writes the encounter and the bestiary in two separate
-    [setState] calls, so there is a real window in which they disagree -- and
-    undo covers only one of them. [clearEncounter] does the same across the
-    encounter and the archive.
-
-    Here there is one machine over one {!Symbaroum.World.t}, one
-    {!Symbaroum.World.apply}, and one atomic transition. The theme stays outside
-    it, deliberately, because it is not part of the fight and must not be
-    undoable.
-
-    {1 Effects are minted here, and only here}
-
-    {!Symbaroum.World.apply} is pure and total because everything impure is an
-    argument: a fresh id, a timestamp. Those arguments have to come from
-    somewhere, and this is the somewhere. The id counter lives in the model, so
-    the whole machine stays a function -- of the model, the action, and the clock
-    reading that comes in as the state machine's input.
-
-    That is why {!Action.t} is not {!Symbaroum.Action.t}: the UI says "add three
-    goblins" and this module turns that into the domain action with the ids
-    filled in. *)
+(** One state machine for the whole app. *)
 
 open! Core
 open Bonsai_web

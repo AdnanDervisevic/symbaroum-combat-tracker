@@ -1,33 +1,4 @@
-(** The fight: who is in it, whose turn it is, and which round it is.
-
-    This is the type that matters most in the port, because it deletes two of the
-    app's real bugs by construction rather than by fixing them.
-
-    {1 There is no such thing as an out-of-range turn}
-
-    [EncounterState] in {{:src/types.ts} [types.ts]} is
-    [{ members: Combatant[]; turnIndex: number; round: number }], so
-    [{members: [], turnIndex: 5, round: 0}] typechecks. It is not hypothetical:
-    four paths produce it -- [handleImport], [restoreEncounter],
-    [deleteCharacter] (which prunes members and leaves the index where it was)
-    and any hand-edited [localStorage]. Splitting the type into {!Empty} and
-    {!Active}, and putting the cursor inside a nonempty
-    {!Symbaroum.Turn_order.t}, removes the pairing that could disagree.
-
-    {1 Sorting cannot reset the round}
-
-    [sortByInitiative] ({{:src/App.tsx} [App.tsx:340]}) sets
-    [round: prev.members.length ? 1 : prev.round], so sorting mid-fight silently
-    throws the round away. The fix here is not a corrected line: [round] lives in
-    this type, {i outside} {!Symbaroum.Turn_order.t}, and sorting is
-    {!Symbaroum.Turn_order.sort_by}, which has no round in scope to reset. The
-    bug is unreachable rather than repaired.
-
-    {1 Round normalization happens here and nowhere else}
-
-    {!create} is the single place a turn index or a round number is range-checked
-    -- not in the decoder, not in the migration, not in the UI. Everything it
-    repairs comes back as a {!Symbaroum.Normalization.t}. *)
+(** The fight: who is in it, whose turn it is, and which round it is. *)
 
 open! Core
 

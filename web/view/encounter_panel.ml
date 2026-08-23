@@ -1,10 +1,4 @@
-(** The fight tab.
-
-    The card rows come from {!Bonsai.assoc}, which is why {!Symbaroum.Encounter}
-    holds a map {i plus} an ordered id list rather than an array: [assoc] hands
-    back a map of rendered nodes keyed the same way, and the panel renders by
-    walking the order through it. That shape was chosen in Phase 3 for this
-    moment. *)
+(** The fight tab. *)
 
 open! Core
 open Bonsai_web

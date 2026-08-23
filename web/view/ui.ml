@@ -1,17 +1,4 @@
-(** The handful of shapes every card and panel is built from.
-
-    Two rules hold everywhere under [view/].
-
-    {b The class names are the React app's, verbatim.} [src/App.css] is reused
-    unchanged, so the port is a pure logic port with an identical-looking result
-    -- which is what makes a side-by-side screenshot worth putting in the README.
-    [ppx_css] would be nicer OCaml and is not worth the parity.
-
-    {b A field that will not parse changes nothing.} Every numeric input here
-    routes through a smart constructor, and a value the constructor refuses
-    raises no action at all: the input keeps showing what was typed and the world
-    keeps its last legal value. That is the opposite of [Number(x) || 0], which
-    turns a typo into a zero and stores it. *)
+(** The handful of shapes every card and panel is built from. *)
 
 open! Core
 open Bonsai_web

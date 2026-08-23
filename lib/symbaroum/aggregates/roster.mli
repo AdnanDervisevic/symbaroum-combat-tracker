@@ -1,10 +1,4 @@
-(** The player characters, in the order the Characters tab shows them.
-
-    A map for lookup plus a list for order, rather than the React array. The map
-    makes "is this id in the roster" and "update this one" logarithmic instead of
-    a scan, makes duplicate ids unrepresentable, and is the shape
-    [Bonsai.assoc] wants in Phase 6. The list is what keeps a character where the
-    user put it, which a map keyed by a random id cannot. *)
+(** The player characters, in the order the Characters tab shows them. *)
 
 open! Core
 

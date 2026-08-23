@@ -1,7 +1,4 @@
-(** One edit to one roster entry. The same argument as
-    {!Symbaroum.Member_patch}: [updateCharacter]
-    ({{:src/App.tsx} [App.tsx:104]}) takes a [Partial<Character>], which is a
-    type that says less than the code means. *)
+(** One edit to one roster entry. The same argument as {!Symbaroum.Member_patch}: [updateCharacter] ({{:src/App.tsx} [App.tsx:104]}) takes a [Partial<Character>], which is a type that says less than the code means. *)
 
 open! Core
 

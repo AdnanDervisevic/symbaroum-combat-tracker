@@ -1,10 +1,4 @@
-(** A dice expression: [count] dice of [sides] faces plus a flat [modifier].
-
-    Symbaroum armour is written as a die ([1D4], [1D8]) and the React app keeps
-    it as an unparsed [string] -- so ["1D4"] and ["Light (d4)"] and ["ligth
-    (d4)"] are three different armours as far as the code is concerned, and none
-    of them is a number. Nothing in the app ever reads the value; the moment the
-    probability model needs an expected reduction, it has to. *)
+(** A dice expression: [count] dice of [sides] faces plus a flat [modifier]. *)
 
 open! Core
 

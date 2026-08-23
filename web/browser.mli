@@ -1,8 +1,4 @@
-(** The two things the page has to ask the browser for that are not state.
-
-    Both are the same shape: a bit of DOM the app creates, uses once and throws
-    away. Kept here so that everything under [view/] can stay a pure function
-    from a value to a {!Vdom.Node.t}. *)
+(** The two things the page has to ask the browser for that are not state. *)
 
 open! Core
 open Bonsai_web

@@ -1,16 +1,4 @@
-(** A repair the port made to data that arrived in an illegal shape.
-
-    The rule this type exists to enforce: normalization is {b total} and
-    {b reported}, never silent and never rejecting. Only structurally impossible
-    input -- unparseable JSON, an unknown save version, [members] that is not an
-    array -- is an error. Everything else is repaired, and every repair comes
-    back in a list.
-
-    That turns "we clamp somewhere" into a specification. The import dialog can
-    say "Loaded -- 3 corrections applied" and the tests can assert exactly which
-    three. The alternative, clamping quietly at whichever call site last
-    remembered to, is what the React app does: three view-layer sites, and none
-    at all on the import path. *)
+(** A repair the port made to data that arrived in an illegal shape. *)
 
 open! Core
 

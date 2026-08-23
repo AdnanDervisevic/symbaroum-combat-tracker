@@ -1,15 +1,4 @@
-(** A distribution over small non-negative integers, held as a [float array]
-    indexed by the value.
-
-    Damage is convolved exactly rather than sampled. The support is tiny -- 1d8
-    against 1d4 armour is eight outcomes -- so there is nothing to gain from
-    sampling and a real thing to lose: an exact damage distribution is what lets
-    {!Symbaroum.Attrition_dp} return a probability with a proof attached instead
-    of a confidence interval.
-
-    Non-negative because that is what damage is. {!sub_clamped} folds all the
-    mass at or below zero onto zero, which is the rule "armour cannot heal
-    you". *)
+(** A distribution over small non-negative integers, held as a [float array] indexed by the value. *)
 
 open! Core
 

@@ -1,13 +1,4 @@
-(** One roster entry.
-
-    A pure function rather than a component, because a character card has no
-    state of its own -- unlike a combatant card, which is where the React app's
-    leak lives.
-
-    Note the Delete button: it appears for a character that is not built in, and
-    it asks the {i record} rather than testing the id for a [pc_default_] prefix
-    the way {{:src/components/cards/CharacterCard.tsx} [CharacterCard.tsx:112]}
-    does. An identity carries no data. *)
+(** One roster entry. *)
 
 open! Core
 open Bonsai_web

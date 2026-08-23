@@ -1,11 +1,4 @@
-(** The eight Symbaroum attributes.
-
-    In the React app these are the eight optional fields of [CharacterAttributes]
-    in {{:src/types.ts} [types.ts]}, so "which attributes does this creature
-    have?" is a question about record fields rather than about data. Here they
-    are a closed variant, which makes [all] enumerable and lets a {i key-total}
-    map be the representation of a creature's attribute block (see
-    {!Symbaroum.Attributes}). *)
+(** The eight Symbaroum attributes. *)
 
 open! Core
 

@@ -1,14 +1,4 @@
-(** One combatant in the fight, and the only card with state of its own.
-
-    That state is the point. The React app keeps [damageInputs] and [editingIds]
-    as root-level records keyed by combatant id, and prunes them only in
-    [removeMember] and only for [editingIds] -- so **[damageInputs] leaks an
-    entry for every combatant that ever existed**, for as long as the tab is
-    open.
-
-    Here the two pieces of state are created by {!Bonsai.assoc} {i with} the row
-    and destroyed with it. The leak is not fixed; it is structurally
-    unrepresentable, because there is no root-level map to leave an entry in. *)
+(** One combatant in the fight, and the only card with state of its own. *)
 
 open! Core
 open Bonsai_web

@@ -1,14 +1,4 @@
-(** Something the analysis had to guess, or could not use at all.
-
-    The app records no weapon data, and seven of the eighty-six shipped presets
-    record no toughness either. Both facts have to reach the reader of a
-    difficulty verdict, because a number computed from an invented damage die is
-    not the same kind of number as one computed from a statblock.
-
-    This is the vocabulary for saying so. It is deliberately shared between the
-    data layer, which discovers most of these while normalizing a preset, and
-    {!Symbaroum.Difficulty}, which reports them alongside a probability -- one
-    list of reasons, accumulated once, rather than a caveat type per phase. *)
+(** Something the analysis had to guess, or could not use at all. *)
 
 open! Core
 

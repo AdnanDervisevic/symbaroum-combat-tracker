@@ -1,22 +1,4 @@
-(** Past, present and future, with a bound on the past.
-
-    {{:src/hooks/usePersistentHistory.ts} [usePersistentHistory.ts]} has two bugs
-    that this type is shaped to make unreachable.
-
-    {b The bound is enforced in three of four places.} [setState] slices [past]
-    to the last 50; [redo] (line 112) appends to it and does not. So undo/redo
-    ping-pong grows the past without limit, and since the whole thing is
-    serialised into [localStorage], it grows the saved blob too. Here the
-    capacity travels with the value -- see {!Symbaroum.Bounded_list} for the same
-    argument -- so there is no fourth call site to forget.
-
-    {b The deduplication never fires.} Line 83 is
-    [if (newPresent === prev.present) return prev], a JavaScript {i reference}
-    comparison against a freshly built object literal, which is never equal.
-    Every keystroke in a note field therefore burns an undo slot, and a sentence
-    of typing evaporates all fifty. {!push} takes an [equal] so the comparison is
-    structural, and a [key] so that a run of edits to the same field collapses
-    into one entry rather than fifty. *)
+(** Past, present and future, with a bound on the past. *)
 
 open! Core
 

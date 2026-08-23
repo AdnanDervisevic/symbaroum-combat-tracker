@@ -1,30 +1,4 @@
-(** The verdict, computed off the render path.
-
-    {1 Why it is not simply computed in the view}
-
-    The exact solver runs a few tens of millions of floating-point operations for
-    a realistic fight -- 9,801 states, ten combatants, forty rounds, fourteen
-    outcomes apiece. That is fine once and unacceptable on every keystroke, so
-    the analysis lives in state and the view only reads it.
-
-    {1 The debounce, and why it is a poll rather than a timer}
-
-    A tick once a second compares the {i signature} of the encounter against the
-    signature the current answer was computed from, and recomputes when they
-    differ. A burst of edits therefore costs one analysis rather than one per
-    edit, and the gap is where the view can honestly say "working it out".
-
-    A poll rather than a chain of timers because it needs no stale-result
-    handling at all: there is only ever one analysis in flight, started and
-    finished inside a single effect, so a late answer cannot overwrite a newer
-    one. The plan called for a monotone request counter; polling makes it
-    unnecessary, which is the better kind of simplification.
-
-    {1 The signature}
-
-    Built from exactly the fields the model reads -- and so, deliberately, {b not
-    from names or notes}. Typing a note must not cost an analysis, and here it
-    structurally cannot, because the note is not in the value being compared. *)
+(** The verdict, computed off the render path. *)
 
 open! Core
 open Bonsai_web

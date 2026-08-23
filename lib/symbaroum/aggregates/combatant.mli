@@ -1,26 +1,4 @@
-(** A participant in the encounter.
-
-    {1 Allegiance}
-
-    [Combatant] in {{:src/types.ts} [types.ts]} carries three loosely coupled
-    fields -- a [source] tag, an optional [refId] and an optional [monsterType]
-    -- whose legal combinations are a convention rather than a type. An NPC that
-    points at a player character typechecks, which is why
-    {{:src/App.tsx} [App.tsx:453]} needs a runtime guard. {!Allegiance.t} fuses
-    all three, so the guard has nothing left to check.
-
-    Fusing them also {i forces} a bug fix. [addNpc]
-    ({{:src/App.tsx} [App.tsx:246]}) builds its combatant as a record literal and
-    silently omits [attributes], so every preset's attribute block is dropped on
-    the way into the encounter -- and that block is exactly what the probability
-    model needs. A total record makes the compiler ask for a value.
-
-    {1 Attack}
-
-    {!attack} is the creature's weapon, and it is [None] for anything the data
-    does not describe -- which is every player character in the shipped roster,
-    because the app records no weapons at all. See {!Symbaroum.Attack_profile}
-    for why an estimate is marked as one. *)
+(** A participant in the encounter. *)
 
 open! Core
 

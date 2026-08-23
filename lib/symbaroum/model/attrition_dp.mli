@@ -1,56 +1,13 @@
 (** Exact absorption probability for a fight, by power iteration.
 
-    {1 The reduction}
+    Under focus fire the toughness vector collapses to two integers per side:
+    the enemies before the current target are dead and the ones after it are
+    untouched. That takes 4 PCs against 6 NPCs from [11^10] states to 9,801.
 
-    The honest state of a fight is the whole toughness vector. Four player
-    characters and six NPCs at 10 toughness each is [11^10 ≈ 2.6 × 10^10]
-    states, which is not a computation, it is a wish.
+    {v state = (i, h_A, prone_A, j, h_B, prone_B) v}
 
-    {b Under focus fire the vector collapses to two integers per side.} If each
-    side attacks its enemies in a fixed order, then at any moment the enemies
-    before the current target are dead and the ones after it are untouched -- at
-    whatever toughness they had when the question was asked. So the party's
-    entire state is [(i, h)]: the index of the first living member, and what that
-    member has left. Symmetrically for the other side.
-
-    Prone is nearly free. Only the current target can be knocked down, so it
-    costs a factor of four rather than [2^(n_A + n_B)] -- which means the app's
-    signature mechanic is modelled {i exactly} rather than dropped.
-
-    {v
-      state = (i, h_A, prone_A, j, h_B, prone_B)
-
-      4 PCs (T=10)  vs  6 NPCs (T=10)        9,801 states
-      5 PCs (T=15)  vs  8 NPCs (T=15)       36,391
-      8 PCs (T=20)  vs 20 NPCs (T=20)      257,121   (over budget)
-    v}
-
-    Focus fire is the load-bearing assumption, and it is not free: see
-    [doc/model.md], where {!Symbaroum.Combat_sim} is used to {i measure} the bias
-    against two other targeting policies rather than assert it is small.
-
-    {1 Within a round, resolution is exact}
-
-    A round is the composition of one operator per combatant, in initiative
-    order -- not a simultaneous approximation. Two things follow, and both are
-    worth having. "Does a combatant that dies before its turn still act?" becomes
-    a modelled fact rather than an artefact (it does not). And mutual
-    annihilation cannot happen, so [p_party_wins + p_party_wiped = 1] exactly
-    once the transient mass is gone.
-
-    {1 Power iteration, and why the error bar is a proof}
-
-    The alternative is solving [(I - Q)x = b], which wants BLAS. Avoiding it
-    keeps this pure OCaml with zero C stubs, which is what lets the same code
-    compile to JavaScript {i and} build anywhere -- a hard constraint, not a
-    preference.
-
-    The iteration also gives two things a linear solve does not. The distribution
-    of fight lengths falls out for free, and "median 4 rounds, 90th percentile 9"
-    is more use to a GM than a bare probability. And the error bar is rigorous:
-    after [k] rounds the mass that has not yet been absorbed is an {i exact}
-    upper bound on how far the answer can still move, so {!result.p_bounds} is a
-    theorem rather than a heuristic. *)
+    The reduction, its assumptions, and what focus fire costs are derived in
+    [doc/model.md]. *)
 
 open! Core
 

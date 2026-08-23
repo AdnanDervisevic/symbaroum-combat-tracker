@@ -1,7 +1,4 @@
-(** A display name.
-
-    Non-empty by construction, which the React app does not guarantee: an
-    imported combatant with an empty name renders as a blank card. *)
+(** A display name. *)
 
 open! Core
 include String_id.S

@@ -1,18 +1,4 @@
-(** Stat blocks the GM has used before, keyed by monster type.
-
-    [addNpc] writes one of these every time it adds an NPC with a type, so the
-    dialog can offer it again. The React entry
-    ({{:src/types.ts} [types.ts]}) stores no attributes, which means the
-    round trip preset -> encounter -> bestiary -> encounter silently loses the
-    attribute block. Since the attribute block is what the probability model
-    reads, this port keeps it.
-
-    Keyed by {!Symbaroum.Monster_type}, not by
-    {!Symbaroum.Ids.Bestiary_id}: the React code looks entries up by monster type
-    ([prev.find((e) => e.monsterType === monsterType)]) and only uses the id to
-    decide whether to append or replace. Making the type the key is what the code
-    already means. The id survives so that deleting from the UI list keeps
-    working. *)
+(** Stat blocks the GM has used before, keyed by monster type. *)
 
 open! Core
 

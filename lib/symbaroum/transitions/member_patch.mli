@@ -1,12 +1,4 @@
-(** One edit to one combatant.
-
-    [updateMember] ({{:src/App.tsx} [App.tsx:291]}) takes a
-    [Partial<Combatant>] and shallow-merges it, which means it can set {i any}
-    field to {i any} value of that field's type -- including [source], including
-    a negative [toughness], including an [id] that collides with another
-    member's. The type says "some of a combatant"; the code means "one of these
-    nine things". Writing down which nine costs a variant and buys the
-    difference. *)
+(** One edit to one combatant. *)
 
 open! Core
 

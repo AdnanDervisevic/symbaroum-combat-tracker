@@ -1,16 +1,4 @@
-(** The 86 shipped monster presets, normalized.
-
-    The data itself lives in [monster_presets_data.ml], which is generated from
-    {{:src/data/defaultMonsters.ts} [defaultMonsters.ts]} and holds nothing but
-    wire-typed transcription. This module is the seam where that becomes domain
-    values, so every interpretation of the file happens in exactly one place --
-    {!Symbaroum.Monster_preset.of_raw} -- and is pinned by a golden test that
-    prints all 86 entries.
-
-    {!all} is forced at module initialization, so malformed generated data fails
-    the whole build rather than one code path. That is deliberate: the data is
-    static and checked in, so a failure here is a transcription bug, and
-    [test/test_monster_presets.ml] is what will name it. *)
+(** The 86 shipped monster presets, normalized. *)
 
 open! Core
 

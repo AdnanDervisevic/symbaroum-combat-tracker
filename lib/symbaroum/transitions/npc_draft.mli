@@ -1,13 +1,4 @@
-(** The add-NPC form, after the strings in it have been read.
-
-    [NpcDraft] in {{:src/components/modals/AddCombatantModal.tsx}
-    [AddCombatantModal.tsx]} holds what the user typed; this holds what it
-    parsed to. The difference matters at exactly one place --
-    [addNpc] ({{:src/App.tsx} [App.tsx:246]}), which coerces every field on the
-    way out ([Number(x) || 0], [.trim() || "Light (d4)"]) and then quietly omits
-    [attributes] altogether, dropping the preset stat block that the probability
-    model needs. Here the parse happens once, in the form, and what comes out is
-    a value the encounter can hold. *)
+(** The add-NPC form, after the strings in it have been read. *)
 
 open! Core
 

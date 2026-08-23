@@ -1,31 +1,4 @@
-(** The save format the deployed React app writes. {b Frozen forever.}
-
-    Real people have real data in this shape, in [localStorage] under the
-    [sct.v1.*] keys and in files exported from the live site. Nothing in this
-    module may change in a way that stops reading an old blob.
-
-    {1 Total records, no invariants}
-
-    Every type here mirrors {{:src/types.ts} [types.ts]} field for field,
-    including the three ways it spells "absent". These are the {i wire} shapes:
-    [toughness] is one [int] doing the job of a current and a maximum,
-    [painThreshold] is an [int option] whose [None] and [Some 0] mean opposite
-    things, and [source] is a bare string that may say anything. None of that is
-    repaired here. Decoding this module's types can only fail on input that is
-    structurally not this format; everything else is somebody else's problem, and
-    that somebody is {!Symbaroum.Wire_v2.to_domain}.
-
-    Separating the two is what makes the pipeline testable: a malformed file
-    fails here with a JSON path, and a legal-but-wrong file passes here and comes
-    out of the domain conversion with a list of repairs.
-
-    {1 Why the eight attribute keys are spelled out}
-
-    {!Symbaroum.Attribute} already maps ["acc"] to [Accurate], and reusing it
-    would be shorter. It would also couple a frozen format to a living type: add
-    a ninth attribute to the domain and this reader starts looking for a ninth
-    key in files that will never have one. Independence from the domain is the
-    property that makes a format freezable, so the keys are written out. *)
+(** The save format the deployed React app writes. {b Frozen forever.} *)
 
 open! Core
 

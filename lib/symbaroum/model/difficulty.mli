@@ -1,31 +1,4 @@
-(** How hard is this fight.
-
-    This replaces the heuristic at
-    {{:src/components/panels/EncounterPanel.tsx} [EncounterPanel.tsx:5-35]},
-    whose weights -- 0.5, 0.3, 0.2 over a toughness ratio, a defence ratio and a
-    headcount ratio -- are derived from nothing, and whose defence ratio divides
-    by the party's average defence. That average is zero for a party of the two
-    shipped characters whose stats are placeholders, so the heuristic returns
-    [Infinity] with stock data.
-
-    {1 Lead with the casualties, not the probability}
-
-    Parties do not fight to the last member; they retreat, or they lose someone
-    and the fight changes. So {!expected_party_casualties} is the number to put
-    in front of a GM, and {!Label.t} is the summary. "Balanced -- 71% win, expect
-    1.3 casualties, median 5 rounds" is a sentence a GM can act on; a bare label
-    is not.
-
-    {1 Two methods, one type}
-
-    Small fights are solved exactly and large ones are sampled, and
-    {!Method.t} says which happened, with the numbers needed to judge it: the
-    state count and the residual for the exact method, the sample count, standard
-    error and {b seed} for the sampled one. A printed result is always
-    reproducible.
-
-    The labels are deliberately {i not} calibrated against the old heuristic.
-    Continuity with a broken baseline is not a goal. *)
+(** How hard is this fight. *)
 
 open! Core
 

@@ -1,15 +1,4 @@
-(** High-water marks for the auto-generated NPC names, one per monster type.
-
-    [addNpc] ({{:src/App.tsx} [App.tsx:231]}) names the next goblin by counting
-    the goblins {i currently in the encounter}. So: add three, remove Goblin 2,
-    add one more, and the new one is also called Goblin 3. The count is a
-    property of the live roster; the name needs a property of the encounter's
-    history. Keeping the marks {i in} the encounter is what makes them survive a
-    removal -- and what makes them survive undo, export and reload, since they
-    travel with the state they belong to.
-
-    Saves written by the React app have no counter, so {!rebuild_from} recovers
-    one from the highest number it can see. *)
+(** High-water marks for the auto-generated NPC names, one per monster type. *)
 
 open! Core
 

@@ -1,14 +1,4 @@
-(** A range-checked integer, for the several scalars in this domain that are
-    "an [int], but only these ones".
-
-    Four such types exist here ({!Symbaroum.Attribute_value},
-    {!Symbaroum.Defense}, {!Symbaroum.Npc_count}, {!Symbaroum.Adjust_amount})
-    and all four are bare [number] in the React app, where the bound lives in
-    whichever call site last remembered it: [Math.max(0, Math.min(999, ...))] in
-    [applyAdjustment] ({{:src/App.tsx} [App.tsx:398]}), [NPC_COUNT_MIN] and
-    [NPC_COUNT_MAX] in the add dialog only, and nowhere at all on the import
-    path. Here the bound is a property of the type, so there is exactly one
-    place to check it and no way to skip it. *)
+(** A range-checked integer, for the several scalars in this domain that are "an [int], but only these ones". *)
 
 open! Core
 

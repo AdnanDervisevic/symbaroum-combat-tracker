@@ -1,43 +1,4 @@
-(** A JSON reader that accumulates errors instead of stopping at the first one.
-
-    {1 Why this is hand-written when the writer is derived}
-
-    Encoding is total and decoding is partial, so only the partial direction
-    needs machinery. That is the short version. The real reason is sharper: a
-    derived [of_yojson] on the domain types would {b reintroduce every illegal
-    state this port exists to delete}. A deriver constructs records directly; it
-    cannot route through {!Symbaroum.Toughness.create} or
-    {!Symbaroum.Encounter.create}, and on a [private] type it either fails to
-    compile or forces the type open, which defeats the design. The trust
-    boundary is exactly where smart constructors matter most, so it is exactly
-    where derivation is wrong.
-
-    Two smaller reasons. A derived reader raises on the first mismatch, where an
-    import that reports {i "3 problems, at these paths"} is strictly better. And
-    the shapes coming out of the React app need "missing and null both mean
-    absent" as a combinator rather than as a habit -- see {!field_opt}.
-
-    {1 Applicative, not monadic}
-
-    This is the design decision worth pointing at. A monadic [bind] would let a
-    later field depend on an earlier one, and would therefore have to {i stop} at
-    the first failure -- there is nothing to feed the continuation. An
-    applicative combines independent decoders, so both halves of an {!apply} run
-    whatever the other one does and their errors concatenate. Error accumulation
-    is not a feature bolted on here; it is what the weaker interface buys.
-
-    Nothing in this format needs the extra power: no field's shape depends on
-    another field's value. Where a decoded value has to be {i validated} -- fed
-    to a smart constructor that may reject it -- {!validate} does that without
-    letting the schema branch.
-
-    {1 Paths}
-
-    Every decoder carries the path it is standing at, so an error reads
-    [$.characters[2].toughness: expected a whole number, found a string]. The
-    plan called for a separate [at] combinator for this; it turned out to be
-    unnecessary, because {!field} and {!list} extend the path themselves and
-    there is no other way to descend. *)
+(** A JSON reader that accumulates errors instead of stopping at the first one. *)
 
 open! Core
 

@@ -1,37 +1,4 @@
-(** One entry of the shipped bestiary, normalized.
-
-    {1 The Defense reconciliation}
-
-    The [defense] field in {{:src/data/defaultMonsters.ts} [defaultMonsters.ts]}
-    was transcribed from statblocks under more than one convention. Counted
-    across all 86 presets, reading it as a {b modifier} -- so that the roll-under
-    target is [10 - defense] -- lands inside {!Symbaroum.Defense}'s legal range
-    for 74 of the 79 presets that have the field at all. The five that do not are
-    the absolute-target spelling: Servant Daemon stores [15] at [qui: 15].
-
-    The ruling for this port is that the stored field {b is a modifier}. It is
-    applied uniformly -- to presets, to player characters, and to the defaults
-    the UI offers -- because that reading is the only one under which the whole
-    shipped dataset is legal. It also gives the right answer for the two
-    placeholder player characters, whose [defense: 0] becomes a target of 10,
-    exactly average, which is what a placeholder should mean. (Reading the field
-    as an absolute target instead makes those two [0], which is not a legal
-    roll-under target at all, and is the source of the [Infinity] in the old
-    difficulty heuristic.)
-
-    Where the modifier reading does not fit, defence is derived from Quick, which
-    is present and internally consistent in all 86 presets. {!Defense_reading.t}
-    records which of the two happened and {!defense_raw} keeps the original
-    number, so the golden test in [test/test_monster_presets.ml] prints the
-    substitution rather than performing it silently.
-
-    {1 What is missing from the data}
-
-    Seven presets carry no toughness, defence, armour or pain threshold at all --
-    only attributes. They are normalized like any other, and the things that
-    could not be recovered come back as {!Symbaroum.Caveat}s rather than as
-    defaults. An estimate that cannot be told apart from a datum is worse than
-    no estimate. *)
+(** One entry of the shipped bestiary, normalized. *)
 
 open! Core
 

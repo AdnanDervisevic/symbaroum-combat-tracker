@@ -1,8 +1,4 @@
-(** The last few cleared encounters, newest first, so a fight cleared by mistake
-    can be brought back.
-
-    The capacity is a property of the value rather than of the one call site that
-    remembers to slice -- see {!Symbaroum.Bounded_list}. *)
+(** The last few cleared encounters, newest first, so a fight cleared by mistake can be brought back. *)
 
 open! Core
 

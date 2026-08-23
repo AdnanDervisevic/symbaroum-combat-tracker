@@ -1,8 +1,4 @@
-(** The whole page.
-
-    Everything that is not the state machine or a view lives here: the tab, the
-    theme, whether the dialog is open, and the two edges that talk to the
-    browser -- loading at startup and saving when the world changes. *)
+(** The whole page. *)
 
 open! Core
 open Bonsai_web

@@ -1,14 +1,4 @@
-(** What a combatant hits with.
-
-    The app records {i no weapon or damage data whatsoever}. The to-hit side is
-    grounded -- 79 of the 86 presets carry an Accurate score -- but the damage
-    die is a guess, derived from the creature's {!Symbaroum.Resistance} band.
-
-    {!Source.t} is the reason this module exists as a record rather than a pair.
-    An estimate that cannot be told apart from data is worse than no estimate:
-    the analysis has to surface it as a caveat, and the UI has to let the GM
-    correct it. Marking the provenance in the type is what makes forgetting to
-    do either of those a compile-time question. *)
+(** What a combatant hits with. *)
 
 open! Core
 
