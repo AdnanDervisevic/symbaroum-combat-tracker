@@ -30,16 +30,12 @@ them**. This file is the only continuity. Trust it over any recollection.
 ## Current status
 
 ```
-Phase:        5 COMPLETE - the probability model. **Phase 6 is next and unblocked.**
-              THE TWO DELIVERABLES NOW BOTH EXIST: `doc/model.md` is written, and the
-              illegal-state table below is ready to lift into the README in Phase 8.
-Last session: 2026-08-23 - `model/`: `pmf`, `hit_chance`, `fighter`, `attrition_dp`,
-              `combat_sim`, `difficulty`, plus `doc/model.md` and a `symbaroum
-              analyze` command. The DP matches its closed forms exactly
-              (0.952381 against the hand-derived recurrence) and agrees with a
-              40,000-sample simulation on every case. The focus-fire bias is
-              MEASURED rather than asserted: up to 11 points, and largest for a
-              fight already in progress.
+Phase:        ALL EIGHT COMPLETE. The port is done and green.
+Last session: 2026-08-23 - Phases 6 and 7 (the Bonsai UI, done as one pass) and
+              Phase 8 (CI, deploy, README). Then a prose cull: every module doc
+              comment kept its first paragraph and lost the essay, about 950
+              lines, because the rationale was already duplicated in this file,
+              in doc/model.md and in the README.
               THE REPO IS at `~/symbaroum-combat-tracker` (ext4, in WSL2). The tree at
               `C:\Users\adnan\symbaroum-combat-tracker` is STALE at f7662d0 - never commit
               to it. Windows reaches the live repo at
@@ -47,13 +43,17 @@ Last session: 2026-08-23 - `model/`: `pmf`, `hit_chance`, `fighter`, `attrition_
               Pinned: ocaml 5.2.0, core v0.16.2, bonsai v0.16.0 (**Proc style**),
               js_of_ocaml 5.9.1, dune 3.23.1, ocamlformat 0.29.0, yojson 3.0.0.
               `virtual_dom` pins the train to v0.16 - do not bump `core` to v0.17.
-Next action:  Start **Phase 6 - the Bonsai skeleton**. Read-only, real data, and
-              reuse `src/App.css` and `src/index.css` VERBATIM with the same class
-              names, so the UI phase is a pure logic port with a side-by-side
-              screenshot at the end of it. Bonsai is **v0.16 Proc style**
-              (`Bonsai.Computation.t` / `Bonsai.Value.t`), NOT Cont style - follow
-              `bonsai/examples/` at the pinned tag, not blog posts.
-              Build from the repo root inside WSL. Green means all four of:
+Next action:  Nothing is blocking. What is left is in "Open questions" below, and
+              the two that matter are both HUMAN steps, not code:
+                1. Export a real save from the deployed React app and run
+                   `dune exec -- bin/symbaroum_cli.exe read <file>`. The v1
+                   round trip is currently exercised against a hand-built
+                   stand-in.
+                2. Decide whether the live Vercel URL should point at this
+                   branch. CI publishes to GitHub Pages; `vercel.json` is ready
+                   for the alternative. **`master` and the live deployment have
+                   not been touched.**
+              Green means all four of:
                 dune build @fmt && dune build -p symbaroum && dune runtest && dune build
 ```
 
@@ -138,6 +138,13 @@ of rationale.
 | 2026-08-23 | **The clamp means no fight is ever certain** | A natural 1 always hits and a natural 20 always misses, so the roll-under target is clamped to `[1, 19]` and `p_hit` to `[0.05, 0.95]`. The plan's closed-form anchor assumed `p_hit = 1` was reachable; it is not, and the honest anchor is the recurrence `p / (1 - (1-p)^2)` = **0.952381**, which the DP reproduces exactly. |
 | 2026-08-23 | **`Weakest_first` is the largest known bias, and it applies to the case GMs ask about** | The targeting table shows `Weakest_first` equal to `Focus_in_order` on every row where both sides start at full health -- focusing in order makes the current target the weakest anyway. They diverge only when a side starts already hurt, and there the difference is **11 points**. That is exactly the fight-in-progress case, so it is stated prominently in `doc/model.md` rather than buried. Found by adding a case with unequal starting toughness after noticing the third column was identical to the first. |
 | 2026-08-23 | **`bin/symbaroum_cli.ml` gained an `analyze` command** | The whole pipeline in one line: a v1 React export migrates, normalizes and comes out as an exact difficulty verdict with a rigorous bound. It is also the reproduction instruction at the bottom of `doc/model.md`. |
+| 2026-08-23 | **Phases 6 and 7 were done as one pass** | The plan splits a read-only skeleton from an interactive one for scheduling reasons. Building the state machine in order not to call it is not a useful intermediate, so the UI landed once, interactive. |
+| 2026-08-23 | **js_of_ocaml's `int` is 32 bits, and JavaScript timestamps are not** | The build warned that `86_400_000_000_000` had been truncated -- my own date arithmetic -- and chasing it found the real one: epoch milliseconds are ~1.7e12 and the wire types carried them as `int`. **Every native test passed and the browser would have been silently wrong.** They are `float` now, which is what a JSON number is anyway. The general lesson for this repo: a native-only test suite cannot check the target. |
+| 2026-08-23 | **A `Bonsai.state` setter closes over the old value; use a state machine when two updates can land before a render** | Ticking four player characters put one in the fight, because each handler read the same stale set. The selection is a `state_machine0` where the action says *what to do* rather than *what the answer is*. Found by clicking, not by reading. |
+| 2026-08-23 | **Saving and the difficulty analysis are polled, not edge-triggered** | Both should cost one operation per burst of keystrokes rather than one per character. Polling also removes the plan's monotone request counter for stale analyses -- there is only ever one in flight -- which is the better kind of simplification. |
+| 2026-08-23 | **The NPC form holds strings, and parses once on submit** | Exactly what `npc_draft.mli` already said: the React `NpcDraft` holds what the user typed and `Npc_draft.t` holds what it parsed to. So `Form.t` is all strings -- which is also, conveniently, a Bonsai model without anything having to grow a `t_of_sexp` it should not have. A form that will not parse disables the button rather than producing a draft full of zeroes. |
+| 2026-08-23 | **Deploy goes to GitHub Pages from CI; the live Vercel URL is not touched** | The plan suggested committing the built `public/` to the branch Vercel watches. That branch is `master`, and replacing a live site is a decision rather than a side effect of a green build. CI publishes to Pages, `vercel.json` and `scripts/build_site.sh` are ready for the alternative, and `site/` is gitignored -- a megabyte of generated JavaScript does not belong in the history. |
+| 2026-08-23 | **The interface prose was cut by about 950 lines** | Asked for by the human, and right. Every module doc comment kept its first paragraph and lost the essay; three keep a second because it is the pipeline diagram, the to-hit formula or the state encoding rather than an argument. Nothing was lost that was not already in this file, in `doc/model.md` or in the README. Comments are now nine per cent of the tree. |
 | 2026-08-23 | Added `caveat.ml` and `initiative.ml`, neither in the plan | `Caveat.t` was scheduled for Phase 5, but Phase 2 is where most caveats are *discovered*, so it is one shared vocabulary rather than one type per phase. `Initiative.t` bounds `0 .. 99` a field the React app coerces with `Number(...) \|\| 0`, where a negative value silently reorders the descending sort. |
 | 2026-08-23 | **`dune build -p symbaroum` does not catch dev-profile warnings** | `bounded_int.mli` passed the release build and failed `dune build` with warning 67 (unused functor parameter; fixed with `Make (_ : Arg)`). The release profile relaxes warnings, so a green `-p` build proves the core is JS-free and proves nothing about warnings. This is why "green" means all four checks and is never shorthand for any one of them. |
 
@@ -867,18 +874,18 @@ than a bare label.
 
 ---
 
-## Phase 6 — Bonsai skeleton  ⏱ 2–3 days
+## Phase 6 — Bonsai skeleton  ⏱ 2–3 days — ✅ COMPLETE (2026-08-23)
 
 **Ends with:** a page that looks like the React app, read-only, real data, existing CSS.
 
-- [ ] `web/` dune package, js_of_ocaml entry point
-- [ ] Reuse [`src/App.css`](src/App.css) (780 lines) and [`src/index.css`](src/index.css)
+- [x] `web/` dune package, js_of_ocaml entry point
+- [x] Reuse [`src/App.css`](src/App.css) (780 lines) and [`src/index.css`](src/index.css)
       **verbatim**, keeping class names in the Vdom. This makes the UI phase a *pure logic port*
       with an identical-looking result — the fastest route to a side-by-side screenshot in the
       README. `ppx_css` is nicer OCaml but it is polish; only after parity.
-- [ ] Static render of roster + encounter from `Default_roster`
-- [ ] `Difficulty_readout` (static first)
-- [ ] Component tree:
+- [x] Static render of roster + encounter from `Default_roster`
+- [x] `Difficulty_readout` (static first)
+- [x] Component tree:
   ```
   App.component
   ├─ theme state -> Edge.on_change -> document.documentElement.dataset.theme
@@ -892,56 +899,66 @@ than a bare label.
 
 ---
 
-## Phase 7 — Interactivity + persistence  ⏱ 2–3 days
+## Phase 7 — Interactivity + persistence  ⏱ 2–3 days — ✅ COMPLETE (2026-08-23)
 
 **Ends with:** feature parity.
 
-- [ ] **Collapse four of the five stores into one `Bonsai.state_machine0` over
+- [x] **Collapse four of the five stores into one `Bonsai.state_machine0` over
       `World.t Undo_history.t`**, action type `Command.t | Undo | Redo`. Today `addNpc` and
       `clearEncounter` each write two stores in two `setState` calls, so there is a real window
       where encounter and bestiary disagree and undo covers only one. One machine, one `apply`,
       one atomic transition. **Theme stays a separate `Bonsai.state` — deliberately not undoable.**
-- [ ] **`damageInputs` and `editingIds` become `Bonsai.assoc` per-row state.** Today they are
+- [x] **`damageInputs` and `editingIds` become `Bonsai.assoc` per-row state.** Today they are
       root-level maps keyed by combatant id, pruned only in `removeMember` and only for
       `editingIds` — **`damageInputs` leaks entries forever**. `assoc` creates and destroys row
       state with the row, so the framework structurally removes the leak. **Worth noting in the
       README.** This is also why `Encounter.Active` holds a `Map` *plus* an ordered id list:
       `assoc` produces a `Vdom.Node.t Combatant_id.Map.t` and the panel renders by mapping the
       ordered ids through it.
-- [ ] **Toasts:** drop `react-toastify`, roll ~60 lines — a `Bonsai.state` queue fed by the
+- [x] **Toasts:** drop `react-toastify`, roll ~60 lines — a `Bonsai.state` queue fed by the
       `Event.t list` from `apply`, expired by `Bonsai.Clock.every`. Cleaner than the React
       version precisely *because* events are returned rather than fired from inside the reducer.
-- [ ] **Difficulty readout:** the DP can take ~200 ms, so do **not** compute it in render.
+- [x] **Difficulty readout:** the DP can take ~200 ms, so do **not** compute it in render.
       `Edge.on_change` on a signature of the model-relevant fields → `Effect.of_sync_fun` →
       `Bonsai.state`, with a monotone request counter dropping stale results and a `Clock`
       debounce. Show "computing…" between. (A Web Worker via a second js_of_ocaml entry point is
       the real fix, but the Bonsai-side ergonomics are unverified — optional polish, not a
       plan dependency.)
-- [ ] **localStorage:** no first-class Bonsai binding exists (`Persistent_var` is a different
+- [x] **localStorage:** no first-class Bonsai binding exists (`Persistent_var` is a different
       thing). ~30 lines over `Dom_html.window##.localStorage` wrapping `Js.Optdef` and
       exceptions, with `set` returning `Or_error` so `QuotaExceededError` is handled explicitly
       rather than `console.warn`ed away as it is today. Persist via **throttled**
       `Edge.on_change` — writing hundreds of KB per keystroke makes an app feel broken. Persist
       `present` plus `past` truncated to 20, gated on serialized size < 1 MB, falling back to
       present-only.
-- [ ] v1 localStorage migration on load
-- [ ] Import/export dialogs
+- [x] v1 localStorage migration on load
+- [x] Import/export dialogs
 
 ---
 
-## Phase 8 — Deploy + docs  ⏱ 1 day
+## Phase 8 — Deploy + docs  ⏱ 1 day — ✅ COMPLETE (2026-08-23)
 
-- [ ] GitHub Actions: `ocaml/setup-ocaml@v3` with dep caching → `dune build @fmt` →
+- [x] GitHub Actions: `ocaml/setup-ocaml@v3` with dep caching → `dune build @fmt` →
       `dune build -p symbaroum` (**proves the core is JS-free**) → `dune runtest` →
       `dune build --profile release @web` → publish
-- [ ] **Keep Vercel** by committing the built `public/` to the branch Vercel watches, with
+- [ ] ~~**Keep Vercel** by committing the built `public/`~~ — **DEVIATED, see the decisions
+      log.** The branch Vercel watches is `master`, and replacing a live site is a decision
+      rather than a side effect of a green build. CI publishes to GitHub Pages instead;
+      `vercel.json` and `scripts/build_site.sh` are ready if the human wants the switch, and
+      `site/` is gitignored because a megabyte of generated JavaScript does not belong in the
+      history. Original wording follows:
+      Keep Vercel by committing the built `public/` to the branch Vercel watches, with
       `vercel.json` set to `{"framework": null, "buildCommand": null, "outputDirectory": "public"}` —
       pure static, no Node, no build on Vercel's side. This preserves the existing URL in the
       README. (GitHub Pages via `peaceiris/actions-gh-pages` is simpler if you would rather drop
       Vercel; both is fine.)
-- [ ] README leading with the model and the illegal-state table
-- [ ] Side-by-side screenshot
-- [ ] **Bundle size, stated honestly:** ~1.5–4 MB unminified, ~400–900 KB gzipped. `Base`
+- [x] README leading with the model and the illegal-state table
+- [ ] Side-by-side screenshot — **HUMAN STEP.** Needs the React app running, which needs
+      Node, which is not installed here. The OCaml side is one command:
+      `./scripts/build_site.sh && (cd site && python3 -m http.server 8000)`.
+- [x] **Bundle size, stated honestly. MEASURED: 1,089 KB raw, 349 KB gzipped** — better than
+      the plan's estimate of ~1.5–4 MB unminified / ~400–900 KB gzipped, and now printed by
+      CI on every build rather than estimated. `Base`
       instead of `Core` would shrink it meaningfully — but Core idiom *is* the goal, so keep
       Core and note the tradeoff in the README. **Being visibly aware of the cost is worth more
       here than the kilobytes.**
