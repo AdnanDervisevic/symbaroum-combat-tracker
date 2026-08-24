@@ -135,10 +135,27 @@ function App() {
   const [isBuilderOpen, setBuilderOpen] = useState(false);
   const [painFlash, setPainFlash] = useState<PainFlash | null>(null);
   const [editingIds, setEditingIds] = useState<Record<string, boolean>>({});
-  const [theme, setTheme] = usePersistentState<"light" | "dark">("sct.theme", () => "light");
+  const [theme, setTheme] = usePersistentState<"light" | "dark">(
+    "sct.theme",
+    () => "light",
+    (raw) => (raw === "dark" ? "dark" : "light")
+  );
+  // Every persisted key needs a v1 reader, including this one: without it the
+  // v2 key is missing, the v1 key is skipped, and a shelf of archived encounters
+  // silently becomes an empty list.
   const [encounterHistory, setEncounterHistory] = usePersistentState<EncounterHistoryEntry[]>(
     "sct.encounterHistory",
-    () => []
+    () => [],
+    (raw) =>
+      (Array.isArray(raw) ? raw : []).map((entry) => {
+        const e = (entry ?? {}) as Partial<EncounterHistoryEntry>;
+        return {
+          id: typeof e.id === "string" ? e.id : uid("hist"),
+          timestamp: typeof e.timestamp === "number" ? e.timestamp : Date.now(),
+          label: typeof e.label === "string" ? e.label : "Archived encounter",
+          encounter: readEncounter(e.encounter, { characters, bestiary }).encounter,
+        };
+      })
   );
 
   const MAX_HISTORY_ENTRIES = 10;
