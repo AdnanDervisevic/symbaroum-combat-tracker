@@ -57,8 +57,12 @@ Last session: 2026-08-23 - Phases 6 and 7 (the Bonsai UI, done as one pass) and
               Pinned: ocaml 5.2.0, core v0.16.2, bonsai v0.16.0 (**Proc style**),
               js_of_ocaml 5.9.1, dune 3.23.1, ocamlformat 0.29.0, yojson 3.0.0.
               `virtual_dom` pins the train to v0.16 - do not bump `core` to v0.17.
-Next action:  Nothing is blocking. What is left is in "Open questions" below, and
-              the two that matter are both HUMAN steps, not code:
+Next action:  PARKED 2026-08-24. The human is running their table on the React
+              app on `master`; this branch stays as a demo. What the port found is
+              written up as a fix list for the React app in `doc/react-fixes.md`
+              -- that file is the live piece of work now, not this one.
+              If the branch is ever picked up again, start with the two UI gaps
+              in "Open questions" below. What is left is:
                 1. Export a real save from the deployed React app and run
                    `dune exec -- bin/symbaroum_cli.exe read <file>`. The v1
                    round trip is currently exercised against a hand-built
@@ -1137,6 +1141,20 @@ once `.mli`s and tests are counted.
 ---
 
 ## Open questions / blocked
+
+- [ ] **The add-combatant dialog lost the preset categories.** React groups the preset
+      `<select>` with `<optgroup label={category}>`
+      ([`AddCombatantModal.tsx:147`](src/components/modals/AddCombatantModal.tsx)); the
+      Bonsai port renders one flat list. `Monster_presets.by_category` already exists and
+      is already grouped and sorted -- the modal simply never used it. Reported by the
+      human while using the port; not a regression from anything, it was never ported.
+- [ ] **The note textarea is laid out wrong on the combatant card.** Reported as "sticky
+      attached" -- it sits flush against the block above it instead of spaced. The markup
+      looks equivalent to React's (a bare `textarea` between the stat block and
+      `.card-actions`) and the rule that should apply, `textarea { margin-bottom: 8px }` at
+      `src/App.css:374`, is not selector-dependent -- so the cause is somewhere in the
+      surrounding card structure and was **not** diagnosed before the branch was parked.
+      Start by diffing the rendered DOM of one card against the React one.
 
 - [ ] **`Attack_profile` has no consumer left.** It was built for the model, and it survives the model's deletion because it is a field on `Combatant` and `Bestiary_entry` and part of the **v2 save format**. Removing it is a format change plus a migration, not a deletion, so it was left alone rather than done quietly. `Caveat` is fine and stays: `Monster_preset` still produces all five constructors when it normalizes the shipped data, which is a statement about data quality rather than about a model.
 

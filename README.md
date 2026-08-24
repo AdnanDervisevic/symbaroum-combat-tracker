@@ -241,6 +241,12 @@ Feature parity with one deliberate exception — the difficulty score, which was
 ported, improved, and then removed for the reason above. `master` and its live
 deployment are untouched.
 
+**What the port found is written up for the original**, as a prioritised fix
+list with the file, the current behaviour and the fix for each item:
+**→ [`doc/react-fixes.md`](doc/react-fixes.md)**. Sixteen items, every one of them
+something a test or a type refused to accept rather than something spotted by
+reading.
+
 Known gaps are tracked in [`PORT_TODO.md`](PORT_TODO.md). The two worth naming
 here: the v1 round-trip is exercised against a hand-built export rather than one
 taken from the live site, and `Attack_profile` still rides along in the domain
