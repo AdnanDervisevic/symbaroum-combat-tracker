@@ -12,6 +12,15 @@ dist
 dist-ssr
 *.local
 
+# Build output from the `ocaml-port` branch, which shares this working
+# directory. Ignored here as well as there: `git add -A` on this branch would
+# otherwise sweep up ~1,500 files of dune cache and a megabyte of generated
+# JavaScript. Safe to delete -- `dune build` and `scripts/build_site.sh` on that
+# branch reproduce all of it.
+_build/
+site/
+*.install
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
