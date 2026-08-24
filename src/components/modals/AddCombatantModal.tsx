@@ -4,6 +4,8 @@ import type { Character, EncounterState, EncounterHistoryEntry, CharacterAttribu
 import { DEFAULT_MONSTERS, MONSTER_CATEGORIES } from '../../data/defaultMonsters';
 import type { MonsterPreset } from '../../data/defaultMonsters';
 import { NPC_COUNT_MIN, NPC_COUNT_MAX } from '../../utils/npcConstants';
+import { NumberField, OptionalNumberField } from '../common/NumberField';
+import { MAX_TOUGHNESS } from '../../utils/toughness';
 
 type FormEvent = ReactFormEvent<HTMLFormElement>;
 
@@ -174,29 +176,33 @@ export function AddCombatantModal({
               </label>
               <label>
                 <span>Initiative</span>
-                <input
-                  type="number"
+                <NumberField
                   value={npcDraft.initiative}
-                  onChange={(e) => onNpcDraftChange("initiative", Number(e.target.value) || 0)}
-                  required
+                  min={0}
+                  max={99}
+                  onCommit={(value) => onNpcDraftChange("initiative", value)}
                 />
               </label>
               <label>
                 <span>Toughness</span>
-                <input
-                  type="number"
+                <NumberField
                   value={npcDraft.toughness}
-                  onChange={(e) => onNpcDraftChange("toughness", Number(e.target.value) || 0)}
-                  required
+                  min={1}
+                  max={MAX_TOUGHNESS}
+                  onCommit={(value) => onNpcDraftChange("toughness", value)}
                 />
               </label>
               <label>
-                <span>Defense</span>
-                <input
-                  type="number"
+                {/* Presets store the modifier an attacker applies; it is
+                    converted to the roll-under target when one is loaded, so
+                    this box always means the same thing as the one on a
+                    character sheet. */}
+                <span>Defense (roll under)</span>
+                <NumberField
                   value={npcDraft.defense}
-                  onChange={(e) => onNpcDraftChange("defense", Number(e.target.value) || 0)}
-                  required
+                  min={1}
+                  max={20}
+                  onCommit={(value) => onNpcDraftChange("defense", value)}
                 />
               </label>
               <label>
@@ -208,29 +214,21 @@ export function AddCombatantModal({
               </label>
               <label>
                 <span>Pain Threshold</span>
-                <input
-                  type="number"
-                  value={npcDraft.painThreshold ?? ""}
-                  onChange={(e) =>
-                    onNpcDraftChange(
-                      "painThreshold",
-                      e.target.value === ""
-                        ? null
-                        : Math.max(0, Number(e.target.value) || 0)
-                    )
-                  }
+                <OptionalNumberField
+                  value={npcDraft.painThreshold}
+                  min={0}
+                  max={MAX_TOUGHNESS}
+                  placeholder="never"
+                  onCommit={(value) => onNpcDraftChange("painThreshold", value)}
                 />
               </label>
               <label>
                 <span>Quantity</span>
-                <input
-                  type="number"
+                <NumberField
+                  value={npcDraft.count}
                   min={NPC_COUNT_MIN}
                   max={NPC_COUNT_MAX}
-                  value={npcDraft.count}
-                  onChange={(e) =>
-                    onNpcDraftChange("count", Math.max(NPC_COUNT_MIN, Math.min(NPC_COUNT_MAX, Number(e.target.value) || NPC_COUNT_MIN)))
-                  }
+                  onCommit={(value) => onNpcDraftChange("count", value)}
                 />
               </label>
               <label className="wide">

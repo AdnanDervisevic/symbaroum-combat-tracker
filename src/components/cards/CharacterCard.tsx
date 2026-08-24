@@ -1,6 +1,7 @@
 import type { Character, CharacterAttributes, AttributeKey } from '../../types';
-import { clamp } from '../../utils';
 import { ATTRIBUTE_FIELDS } from '../../utils/combatLogic';
+import { NumberField, OptionalNumberField } from '../common/NumberField';
+import { MAX_TOUGHNESS } from '../../utils/toughness';
 
 const hasAttributes = (attrs?: CharacterAttributes | null) =>
   !!attrs && ATTRIBUTE_FIELDS.some(({ key }) => attrs[key] !== null && attrs[key] !== undefined);
@@ -32,38 +33,31 @@ export function CharacterCard({ character, onUpdate, onDelete, onAttributeChange
       <div className="grid stats">
         <label>
           <span>Initiative</span>
-          <input
-            type="number"
+          <NumberField
             value={character.initiative}
-            onChange={(e) =>
-              onUpdate(character.id, {
-                initiative: Number(e.target.value) || 0,
-              })
-            }
+            min={0}
+            max={99}
+            onCommit={(initiative) => onUpdate(character.id, { initiative })}
           />
         </label>
         <label>
           <span>Toughness</span>
-          <input
-            type="number"
+          <NumberField
             value={character.toughness}
-            onChange={(e) =>
-              onUpdate(character.id, {
-                toughness: clamp(Number(e.target.value) || 0, 0, 999),
-              })
-            }
+            min={1}
+            max={MAX_TOUGHNESS}
+            onCommit={(toughness) => onUpdate(character.id, { toughness })}
           />
         </label>
         <label>
-          <span>Defense</span>
-          <input
-            type="number"
+          {/* The number on the sheet: what this character rolls under. Monster
+              statblocks print a modifier instead, and are converted on load. */}
+          <span>Defense (roll under)</span>
+          <NumberField
             value={character.defense}
-            onChange={(e) =>
-              onUpdate(character.id, {
-                defense: Number(e.target.value) || 0,
-              })
-            }
+            min={1}
+            max={20}
+            onCommit={(defense) => onUpdate(character.id, { defense })}
           />
         </label>
         <label>
@@ -75,17 +69,12 @@ export function CharacterCard({ character, onUpdate, onDelete, onAttributeChange
         </label>
         <label>
           <span>Pain Threshold</span>
-          <input
-            type="number"
-            value={character.painThreshold ?? ""}
-            onChange={(e) =>
-              onUpdate(character.id, {
-                painThreshold:
-                  e.target.value === ""
-                    ? null
-                    : Math.max(0, Number(e.target.value) || 0),
-              })
-            }
+          <OptionalNumberField
+            value={character.painThreshold}
+            min={0}
+            max={MAX_TOUGHNESS}
+            placeholder="never"
+            onCommit={(painThreshold) => onUpdate(character.id, { painThreshold })}
           />
         </label>
       </div>
@@ -109,7 +98,7 @@ export function CharacterCard({ character, onUpdate, onDelete, onAttributeChange
         onChange={(e) => onUpdate(character.id, { note: e.target.value })}
         placeholder="Notes"
       />
-      {!character.id.startsWith('pc_default_') && (
+      {!character.isBuiltin && (
         <div className="card-actions">
           <button className="danger ghost" onClick={() => onDelete(character.id)}>
             Delete

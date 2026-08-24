@@ -219,8 +219,27 @@ main {
 }
 
 .stat-row.single-line {
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+  /* Six now: current toughness and its maximum are separate fields. */
+  grid-template-columns: repeat(6, minmax(0, 1fr));
   gap: 4px;
+}
+
+/* Current out of maximum, said once in full under the boxes. */
+.toughness-readout {
+  margin-top: 6px;
+  text-align: center;
+  font-size: 12px;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+}
+
+.encounter-card.downed .toughness-readout {
+  color: var(--danger, #b3261e);
+  font-weight: 700;
+}
+
+.encounter-card.downed {
+  opacity: 0.72;
 }
 
 .stat-field {

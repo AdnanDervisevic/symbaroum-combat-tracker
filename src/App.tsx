@@ -7,8 +7,18 @@ import "react-toastify/dist/ReactToastify.css";
 import "./App.css";
 import { usePersistentState } from "./hooks/usePersistentState";
 import { usePersistentHistory } from "./hooks/usePersistentHistory";
+import { onStorageError } from "./hooks/storage";
 import { buildDefaultCharacters } from "./data/defaultCharacters";
-import type { Character, Combatant, EncounterState, EncounterHistoryEntry, CharacterAttributes, AttributeKey, BestiaryEntry } from "./types";
+import type {
+  Character,
+  Combatant,
+  EncounterState,
+  EncounterHistoryEntry,
+  CharacterAttributes,
+  AttributeKey,
+  BestiaryEntry,
+  MemberPatch,
+} from "./types";
 import { clamp, uid } from "./utils";
 import { exportToFile, importFromFile } from "./utils/exportImport";
 import {
@@ -17,6 +27,20 @@ import {
   buildNewCharacter,
   characterToCombatant,
 } from "./utils/combatLogic";
+import {
+  counterKey,
+  readBestiary,
+  readCharacters,
+  readEncounter,
+} from "./utils/migrate";
+import {
+  applyDelta,
+  exceedsPainThreshold,
+  isDown,
+  makeToughness,
+  setCurrent,
+  setMax,
+} from "./utils/toughness";
 import { CharactersPanel, EncounterPanel, HelpPanel, AddCombatantModal } from "./components";
 import type { NpcDraft } from "./components";
 import { NPC_COUNT_MIN, NPC_COUNT_MAX } from "./utils/npcConstants";
@@ -31,12 +55,11 @@ type PainFlash = {
   id: string;
 };
 
-type PainFlashTrigger = Omit<PainFlash, "id">;
-
 const defaultEncounterState = (): EncounterState => ({
   members: [],
   turnIndex: 0,
   round: 1,
+  nameCounter: {},
 });
 
 const buildNpcDraft = (): NpcDraft => ({
@@ -52,15 +75,59 @@ const buildNpcDraft = (): NpcDraft => ({
   attributes: null,
 });
 
+/** What happened during an adjustment, decided outside the state updater. */
+type AdjustEvent =
+  | { kind: "pain"; name: string; amount: number }
+  | { kind: "down"; name: string };
+
+function applyMemberPatch(member: Combatant, patch: MemberPatch): Combatant {
+  switch (patch.field) {
+    case "name":
+      return { ...member, name: patch.value };
+    case "initiative":
+      return { ...member, initiative: clamp(patch.value, 0, 99) };
+    case "toughnessCurrent":
+      return { ...member, toughness: setCurrent(member.toughness, patch.value) };
+    case "toughnessMax":
+      return { ...member, toughness: setMax(member.toughness, patch.value) };
+    case "defense":
+      return { ...member, defense: patch.value };
+    case "armor":
+      return { ...member, armor: patch.value };
+    case "painThreshold":
+      return { ...member, painThreshold: patch.value };
+    case "prone":
+      return { ...member, prone: patch.value };
+    case "flanked":
+      return { ...member, flanked: patch.value };
+    case "note":
+      return { ...member, note: patch.value };
+  }
+}
+
+/** Toggles are single clicks and each deserves its own undo entry. */
+const coalesceKeyFor = (id: string, patch: MemberPatch): string | null =>
+  patch.field === "prone" || patch.field === "flanked" ? null : `${patch.field}:${id}`;
+
 function App() {
   const [activeTab, setActiveTab] = useState<TabKey>("characters");
   const [characters, setCharacters] = usePersistentState<Character[]>(
     "sct.characters",
-    () => buildDefaultCharacters()
+    () => buildDefaultCharacters(),
+    (raw) => readCharacters(raw)
   );
+  const [bestiary, setBestiary] = usePersistentState<BestiaryEntry[]>(
+    "sct.bestiary",
+    () => [],
+    (raw) => readBestiary(raw)
+  );
+  // Declared after the two above so the migration can recover each combatant's
+  // maximum toughness from the roster entry or bestiary template it came from --
+  // v1 stored a single number and the maximum was simply gone.
   const [encounter, setEncounter, { undo, redo, canUndo, canRedo }] = usePersistentHistory<EncounterState>(
     "sct.encounter",
-    defaultEncounterState
+    defaultEncounterState,
+    (raw) => readEncounter(raw, { characters, bestiary }).encounter
   );
   const [selectedPcIds, setSelectedPcIds] = useState<string[]>([]);
   const [npcDraft, setNpcDraft] = useState<NpcDraft>(buildNpcDraft);
@@ -73,10 +140,6 @@ function App() {
     "sct.encounterHistory",
     () => []
   );
-  const [bestiary, setBestiary] = usePersistentState<BestiaryEntry[]>(
-    "sct.bestiary",
-    () => []
-  );
 
   const MAX_HISTORY_ENTRIES = 10;
 
@@ -84,11 +147,27 @@ function App() {
     document.documentElement.dataset.theme = theme;
   }, [theme]);
 
+  // A failed write used to be a console.warn, so a full localStorage meant the
+  // session quietly stopped saving. Say it once, out loud.
+  const storageWarned = useRef(false);
+  useEffect(() => {
+    onStorageError((key, err) => {
+      console.warn("Failed to write localStorage key " + key, err);
+      if (storageWarned.current) return;
+      storageWarned.current = true;
+      toast.error(
+        "Browser storage is full — changes are no longer being saved. Export your data.",
+        { position: "bottom-right", autoClose: false }
+      );
+    });
+    return () => onStorageError(null);
+  }, []);
+
   // Round change detection for recap
   const prevRoundRef = useRef(encounter.round);
   useEffect(() => {
     if (encounter.round > prevRoundRef.current && encounter.members.length > 0) {
-      const standing = encounter.members.filter((m) => m.toughness > 0).length;
+      const standing = encounter.members.filter((m) => !isDown(m.toughness)).length;
       const down = encounter.members.length - standing;
       const summary = down > 0
         ? `Round ${prevRoundRef.current} complete — ${standing} standing, ${down} down`
@@ -106,13 +185,30 @@ function App() {
     setCharacters((prev) => prev.map((c) => (c.id === id ? { ...c, ...patch } : c)));
   }
 
+  /**
+   * Removing members without repairing the cursor left `turnIndex` pointing at a
+   * different combatant, or past the end of the array with nothing highlighted.
+   * Keep whoever was active if they survived; otherwise clamp into range.
+   */
+  function withRepairedCursor(prev: EncounterState, members: Combatant[]): EncounterState {
+    const activeId = prev.members[prev.turnIndex]?.id;
+    let turnIndex = 0;
+    if (members.length) {
+      const stillThere = members.findIndex((m) => m.id === activeId);
+      turnIndex = stillThere >= 0 ? stillThere : clamp(prev.turnIndex, 0, members.length - 1);
+    }
+    return { ...prev, members, turnIndex, round: members.length ? prev.round : 1 };
+  }
+
   function deleteCharacter(id: string) {
     if (!window.confirm("Delete this character?")) return;
     setCharacters((prev) => prev.filter((c) => c.id !== id));
-    setEncounter((prev) => ({
-      ...prev,
-      members: prev.members.filter((m) => m.refId !== id),
-    }));
+    setEncounter((prev) =>
+      withRepairedCursor(
+        prev,
+        prev.members.filter((m) => m.refId !== id)
+      )
+    );
   }
 
   function addCharacter() {
@@ -136,7 +232,18 @@ function App() {
     setCharacters(result.data.characters);
     setEncounter(result.data.encounter);
     setBestiary(result.data.bestiary ?? []);
-    toast.success("Data imported", { position: "bottom-right", autoClose: 2000 });
+    // Repairs used to be silent, which makes an accepted file and a corrected
+    // one look identical.
+    if (result.corrections.length) {
+      toast.info(
+        `Imported with ${result.corrections.length} correction(s): ` +
+          result.corrections.slice(0, 3).join(" "),
+        { position: "bottom-right", autoClose: 8000 }
+      );
+      result.corrections.forEach((c) => console.info("Import correction: " + c));
+    } else {
+      toast.success("Data imported", { position: "bottom-right", autoClose: 2000 });
+    }
   }
 
   function handleCharacterAttributeChange(id: string, key: AttributeKey, value: string) {
@@ -198,7 +305,7 @@ function App() {
       armor: entry.armor,
       painThreshold: entry.painThreshold,
       note: entry.note,
-      attributes: null,
+      attributes: entry.attributes ?? null,
     });
   }
 
@@ -212,8 +319,11 @@ function App() {
       name: "",
       count: 1,
       initiative: preset.attributes.qui ?? 0,
+      // A statblock prints the *modifier* an attacker applies; a character sheet
+      // prints the roll-under target. Convert here so that every `defense` in the
+      // app afterwards is the same quantity -- the number you roll under.
+      defense: preset.defense === null ? 10 : clamp(10 - preset.defense, 1, 20),
       toughness: preset.toughness ?? 10,
-      defense: preset.defense ?? 0,
       armor: preset.armor ?? '',
       painThreshold: preset.painThreshold,
       note: "",
@@ -226,39 +336,41 @@ function App() {
     const count = Math.max(NPC_COUNT_MIN, Math.min(NPC_COUNT_MAX, npcDraft.count));
     const monsterType = npcDraft.monsterType.trim();
     const baseName = npcDraft.name.trim();
+    const attributes = normalizeAttributes(npcDraft.attributes);
 
     setEncounter((prev) => {
-      const existingTypeCount = monsterType
-        ? prev.members.filter((m) => m.monsterType === monsterType).length
-        : 0;
-      const existingNpcCount = prev.members.filter((m) => m.source === "npc").length;
+      const key = counterKey(monsterType);
+      // A high-water mark, not a head count. Counting live members meant that
+      // removing Goblin 2 and adding one more produced a second Goblin 3.
+      const start = prev.nameCounter[key] ?? 0;
 
       const newMembers: Combatant[] = [];
       for (let i = 0; i < count; i++) {
-        let name: string;
-        if (baseName) {
-          name = count > 1 ? `${baseName} ${i + 1}` : baseName;
-        } else if (monsterType) {
-          name = `${monsterType} ${existingTypeCount + i + 1}`;
-        } else {
-          name = count > 1 ? `NPC ${existingNpcCount + i + 1}` : "NPC";
-        }
+        const name = baseName
+          ? (count > 1 ? `${baseName} ${i + 1}` : baseName)
+          : `${key} ${start + i + 1}`;
         newMembers.push({
           id: uid("cmb"),
           source: "npc",
           monsterType: monsterType || undefined,
           name,
           initiative: Number(npcDraft.initiative) || 0,
-          toughness: Number(npcDraft.toughness) || 0,
+          toughness: makeToughness(npcDraft.toughness, npcDraft.toughness),
           defense: Number(npcDraft.defense) || 0,
           armor: npcDraft.armor.trim() || "Light (d4)",
           painThreshold: npcDraft.painThreshold ?? null,
           prone: false,
           flanked: false,
           note: npcDraft.note.trim(),
+          // Was omitted entirely, so a preset's statblock was dropped on the way
+          // into the fight.
+          attributes,
         });
       }
-      return { ...prev, members: [...prev.members, ...newMembers] };
+      const nameCounter = baseName
+        ? prev.nameCounter
+        : { ...prev.nameCounter, [key]: start + count };
+      return { ...prev, members: [...prev.members, ...newMembers], nameCounter };
     });
 
     if (monsterType) {
@@ -268,11 +380,12 @@ function App() {
           id: existing ? existing.id : uid("bst"),
           monsterType,
           initiative: Number(npcDraft.initiative) || 0,
-          toughness: Number(npcDraft.toughness) || 0,
+          toughness: makeToughness(npcDraft.toughness, npcDraft.toughness).max,
           defense: Number(npcDraft.defense) || 0,
           armor: npcDraft.armor.trim() || "Light (d4)",
           painThreshold: npcDraft.painThreshold ?? null,
           note: npcDraft.note.trim(),
+          attributes,
           updatedAt: Date.now(),
         };
         if (existing) {
@@ -285,30 +398,33 @@ function App() {
     setNpcDraft(buildNpcDraft());
   }
 
-  function updateMember(id: string, patch: Partial<Combatant>) {
-    setEncounter((prev) => ({
-      ...prev,
-      members: prev.members.map((m) => (m.id === id ? { ...m, ...patch } : m)),
-    }));
+  function updateMember(id: string, patch: MemberPatch) {
+    setEncounter(
+      (prev) => ({
+        ...prev,
+        members: prev.members.map((m) => (m.id === id ? applyMemberPatch(m, patch) : m)),
+      }),
+      { coalesce: coalesceKeyFor(id, patch) }
+    );
   }
 
   function removeMember(id: string) {
-    setEncounter((prev) => {
-      const activeId = prev.members[prev.turnIndex]?.id;
-      const members = prev.members.filter((m) => m.id !== id);
-      let { turnIndex, round } = prev;
-      if (!members.length) {
-        turnIndex = 0;
-        round = 1;
-      } else if (activeId === id) {
-        turnIndex = Math.min(turnIndex, members.length - 1);
-      } else {
-        turnIndex = Math.max(0, members.findIndex((m) => m.id === activeId));
-      }
-      return { ...prev, members, turnIndex, round };
-    });
+    setEncounter((prev) =>
+      withRepairedCursor(
+        prev,
+        prev.members.filter((m) => m.id !== id)
+      )
+    );
     setEditingIds((prev) => {
       if (!prev[id]) return prev;
+      const next = { ...prev };
+      delete next[id];
+      return next;
+    });
+    // Used to be pruned only for editingIds, so this map grew an entry for every
+    // combatant that had ever existed.
+    setDamageInputs((prev) => {
+      if (!(id in prev)) return prev;
       const next = { ...prev };
       delete next[id];
       return next;
@@ -336,8 +452,9 @@ function App() {
     setEncounter((prev) => ({
       ...prev,
       members: [...prev.members].sort((a, b) => (b.initiative || 0) - (a.initiative || 0)),
-      turnIndex: prev.members.length ? 0 : 0,
-      round: prev.members.length ? 1 : prev.round,
+      turnIndex: 0,
+      // `round` is deliberately untouched. Sorting in round 5 used to put you
+      // back in round 1 with no warning.
     }));
   }
 
@@ -382,7 +499,9 @@ function App() {
 
   function restoreEncounter(entry: EncounterHistoryEntry) {
     if (!window.confirm("Restore this encounter? Current encounter will be cleared.")) return;
-    setEncounter(entry.encounter);
+    // Archived encounters predate the counter and the cursor repair, so they go
+    // through the same reader an imported file does.
+    setEncounter(readEncounter(entry.encounter, { characters, bestiary }).encounter);
     setBuilderOpen(false);
     toast.success("Encounter restored", { position: "bottom-right", autoClose: 2000 });
   }
@@ -395,42 +514,63 @@ function App() {
     setDamageInputs((prev) => ({ ...prev, [memberId]: value }));
   }
 
+  /**
+   * Work out the new state *and* what happened, then act on both.
+   *
+   * This used to declare a mutable ref, write to it from inside the `setEncounter`
+   * updater, read it afterwards and flush through `setTimeout(…, 0)` to dodge a
+   * batching problem. React may call an updater twice, so that fired the toast
+   * twice in StrictMode. Nothing here writes to anything outside itself.
+   */
   function applyAdjustment(memberId: string, mode: "hurt" | "heal") {
-    const amount = Math.max(0, Math.min(999, damageInputs[memberId] ?? 1));
+    const amount = clamp(damageInputs[memberId] ?? 1, 0, 999);
     if (amount === 0) return;
-    const triggerRef: { current: PainFlashTrigger | null } = { current: null };
+
+    const member = encounter.members.find((m) => m.id === memberId);
+    if (!member) return;
+
+    const delta = mode === "hurt" ? -amount : amount;
+
+    // What one blow does to one combatant. Pure, so the updater below can call
+    // it on whatever `prev` really is -- two quick clicks both land.
+    const resolve = (m: Combatant) => {
+      const { next, dealt } = applyDelta(m.toughness, delta);
+      // Against the damage that actually landed, not the number in the box: a
+      // combatant on 2 hit for 20 takes 2, and being reduced to zero is *down*
+      // rather than prone.
+      const proned =
+        mode === "hurt" && next.current > 0 && exceedsPainThreshold(m.painThreshold, dealt);
+      const prone = mode === "heal" ? false : m.prone || proned;
+      return { next, dealt, prone, proned, downed: next.current === 0 && m.toughness.current > 0 };
+    };
+
+    const preview = resolve(member);
+    if (preview.dealt === 0 && mode === "hurt") return;
+    if (mode === "heal" && preview.next.current === member.toughness.current && !member.prone) return;
+
     setEncounter((prev) => ({
       ...prev,
-      members: prev.members.map((member) => {
-        if (member.id !== memberId) return member;
-        const delta = mode === "hurt" ? -amount : amount;
-        const nextToughness = clamp(member.toughness + delta, 0, 999);
-        const updated: Combatant = { ...member, toughness: nextToughness };
-        if (mode === "hurt") {
-          const threshold = member.painThreshold;
-          if (threshold !== null && amount >= threshold) {
-            updated.prone = true;
-            triggerRef.current = { name: member.name, amount };
-          }
-        } else if (mode === "heal" && member.prone) {
-          updated.prone = false;
-        }
-        return updated;
+      members: prev.members.map((m) => {
+        if (m.id !== memberId) return m;
+        const { next, prone } = resolve(m);
+        return { ...m, toughness: next, prone };
       }),
     }));
-    if (triggerRef.current) {
-      const payload = { ...triggerRef.current };
-      const flashId = uid("flash");
-      window.setTimeout(() => {
-        setPainFlash({ ...payload, id: flashId });
-      }, 0);
-      toast.warning(
-        triggerRef.current.name +
-          " takes " +
-          triggerRef.current.amount +
-          " damage and exceeds Pain Threshold",
-        { position: "bottom-right", autoClose: 4000 }
-      );
+
+    const events: AdjustEvent[] = [];
+    if (preview.proned) events.push({ kind: "pain", name: member.name, amount: preview.dealt });
+    if (preview.downed) events.push({ kind: "down", name: member.name });
+
+    for (const event of events) {
+      if (event.kind === "pain") {
+        setPainFlash({ name: event.name, amount: event.amount, id: uid("flash") });
+        toast.warning(
+          `${event.name} takes ${event.amount} damage and exceeds Pain Threshold`,
+          { position: "bottom-right", autoClose: 4000 }
+        );
+      } else {
+        toast.error(`${event.name} is down`, { position: "bottom-right", autoClose: 4000 });
+      }
     }
   }
 
@@ -477,7 +617,7 @@ function App() {
             </button>
           ))}
           <button className="theme-toggle" onClick={toggleTheme} title="Toggle theme">
-            {theme === "light" ? "\u263E" : "\u2600"}
+            {theme === "light" ? "☾" : "☀"}
           </button>
         </nav>
 
