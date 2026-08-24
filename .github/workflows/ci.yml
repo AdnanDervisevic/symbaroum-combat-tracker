@@ -1,3 +1,14 @@
+# Kept as a description of the checks, not as a thing that runs: GitHub Actions
+# is not available on the account this repository lives under. `scripts/check.sh`
+# runs the same four commands locally and is what actually gates a commit; this
+# file is here so that enabling Actions is a settings change rather than a
+# rewrite.
+#
+# Deployment is deliberately not here. It cannot be -- Vercel has no OCaml
+# toolchain and neither does anything else that would run for free -- so the
+# bundle is built locally and published by pushing it. See
+# `scripts/deploy_vercel.sh`.
+
 name: CI
 
 on:
@@ -47,48 +58,3 @@ jobs:
           gz=$(gzip -c _build/default/web/main.bc.js | wc -c)
           echo "main.bc.js: $((raw / 1024)) KB raw, $((gz / 1024)) KB gzipped" \
             >> "$GITHUB_STEP_SUMMARY"
-
-      - name: Stage the static site
-        run: |
-          mkdir -p site
-          cp _build/default/web/main.bc.js \
-             _build/default/web/index.html \
-             _build/default/web/app.css \
-             _build/default/web/index.css \
-             site/
-
-      - uses: actions/upload-artifact@v4
-        with:
-          name: site
-          path: site
-
-  # Publishes to GitHub Pages. Deliberately separate from the build, and
-  # deliberately not Vercel: the live Vercel URL tracks `master` and the React
-  # app, and switching it over is a decision rather than a side effect of a
-  # green build. See `vercel.json` and README for the one manual step if that is
-  # what you want.
-  #
-  # Needs Pages enabled for the repository (Settings -> Pages -> Source:
-  # GitHub Actions). Until it is, this job fails and the build job above does
-  # not, which is the right way round.
-  deploy:
-    needs: build
-    if: github.ref == 'refs/heads/ocaml-port' && github.event_name == 'push'
-    runs-on: ubuntu-latest
-    permissions:
-      pages: write
-      id-token: write
-    environment:
-      name: github-pages
-      url: ${{ steps.deploy.outputs.page_url }}
-    steps:
-      - uses: actions/download-artifact@v4
-        with:
-          name: site
-          path: site
-      - uses: actions/configure-pages@v5
-      - uses: actions/upload-pages-artifact@v3
-        with:
-          path: site
-      - id: deploy
-        uses: actions/deploy-pages@v4

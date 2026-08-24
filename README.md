@@ -1,7 +1,5 @@
 # Symbaroum Combat Tracker — OCaml port
 
-[![CI](https://github.com/AdnanDervisevic/symbaroum-combat-tracker/actions/workflows/ci.yml/badge.svg?branch=ocaml-port)](https://github.com/AdnanDervisevic/symbaroum-combat-tracker/actions/workflows/ci.yml)
-
 An initiative and combat tracker for the [Symbaroum](https://frialigan.se/en/games/symbaroum/)
 RPG, ported from React + TypeScript to **OCaml + Bonsai**, compiled to JavaScript
 with js_of_ocaml.
@@ -214,9 +212,11 @@ opam install . --deps-only --with-test
 dune build @fmt && dune build -p symbaroum && dune runtest && dune build
 ```
 
-Those four are what "green" means, and CI runs exactly them. The second is a
-claim rather than a convention: it proves the domain core carries no JavaScript
-runtime and no C stubs.
+Those four are what "green" means, and `./scripts/check.sh` runs exactly them.
+The second is a claim rather than a convention: it proves the domain core carries
+no JavaScript runtime and no C stubs. GitHub Actions is not available on this
+account, so `.github/workflows/ci.yml` describes those checks rather than running
+them, and the script is what actually gates a commit.
 
 The headless front end needs no browser:
 
@@ -230,9 +230,25 @@ And the site is four static files — nothing runs on the host:
 ./scripts/build_site.sh && (cd site && python3 -m http.server 8000)
 ```
 
-CI publishes that to GitHub Pages. `vercel.json` is set up for the alternative,
-but pointing the live URL at this branch is a deliberate step and not something
-a green build should do on its own.
+Deploying is that build plus a push:
+
+```bash
+./scripts/deploy_vercel.sh
+```
+
+Vercel has no OCaml toolchain, so nothing here can be built *there*; the bundle is
+built here and only the output travels. It travels to its own branch —
+`vercel-deploy`, one orphan commit, replaced rather than appended to on each
+deploy — because a megabyte of generated JavaScript in the history of the branch
+someone is meant to read is precisely what `site/` is gitignored to avoid. That
+commit names the source commit it was built from, so "what is live?" has an
+answer. `vercel.json` turns Vercel's own build step off (`buildCommand: null`)
+and turns deployments off for `ocaml-port`, so pushing source never starts a
+build that could not have succeeded.
+
+`master` and the production URL are untouched. Pointing them at this branch is a
+deliberate step in the Vercel dashboard, not something a deploy script should do
+on its own.
 
 ---
 

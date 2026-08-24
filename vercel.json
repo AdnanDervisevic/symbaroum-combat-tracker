@@ -3,5 +3,10 @@
   "framework": null,
   "buildCommand": null,
   "installCommand": null,
-  "outputDirectory": "site"
+  "outputDirectory": "site",
+  "git": {
+    "deploymentEnabled": {
+      "ocaml-port": false
+    }
+  }
 }
