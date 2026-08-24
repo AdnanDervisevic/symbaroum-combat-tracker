@@ -10,7 +10,3 @@ val find : Monster_type.t -> Monster_preset.t option
 (** Grouped for the dialog's headings, categories in alphabetical order and
     presets in file order within each. *)
 val by_category : (Monster_preset.Category.t * Monster_preset.t list) list
-
-(** The presets {!Symbaroum.Difficulty} can use -- see
-    {!Symbaroum.Monster_preset.is_modellable}. *)
-val modellable : Monster_preset.t list

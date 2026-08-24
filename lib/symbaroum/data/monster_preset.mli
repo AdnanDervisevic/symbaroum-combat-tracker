@@ -60,7 +60,3 @@ val of_raw : Raw.t -> t Or_error.t
     [handleLoadPreset] ({{:src/App.tsx} [App.tsx:203]}): the creature's Quick, or
     zero if it has none. *)
 val initiative : t -> Initiative.t
-
-(** Whether {!Symbaroum.Difficulty} can use this creature: it needs a maximum
-    toughness, a defence and an attack. *)
-val is_modellable : t -> bool

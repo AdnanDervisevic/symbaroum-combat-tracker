@@ -14,8 +14,8 @@
 ;   transitions/ -> everything above
 ;   codec/       -> everything above; the only place that parses or prints JSON
 ;
-; The one boundary that *is* enforced is the package boundary: `model/` and this
-; whole library must build with `-p symbaroum`, which has no UI library in scope.
+; The one boundary that *is* enforced is the package boundary: this whole
+; library must build with `-p symbaroum`, which has no UI library in scope.
 
 (include_subdirs unqualified)
 

@@ -4,7 +4,7 @@ open! Core
 open Bonsai_web
 open Symbaroum
 
-let render ~inject ~can_undo ~can_redo ~open_builder ~difficulty ~cards encounter =
+let render ~inject ~can_undo ~can_redo ~open_builder ~cards encounter =
   let round_line =
     match Encounter.current encounter with
     | None -> "No combatants yet."
@@ -39,7 +39,6 @@ let render ~inject ~can_undo ~can_redo ~open_builder ~difficulty ~cards encounte
             ]
         ]
     ; Ui.muted ~small:true [ Ui.text round_line ]
-    ; difficulty
     ; Vdom.Node.div
         ~attrs:[ Vdom.Attr.classes [ "cards"; "encounter-grid" ] ]
         (match Encounter.members encounter with
@@ -78,13 +77,11 @@ let component ~encounter ~inject ~can_undo ~can_redo ~open_builder =
         in
         Combatant_card.component ~combatant ~is_active ~inject)
   in
-  let%sub difficulty = Difficulty_readout.component ~encounter in
   let%arr encounter = encounter
   and inject = inject
   and can_undo = can_undo
   and can_redo = can_redo
   and open_builder = open_builder
-  and difficulty = difficulty
   and cards = cards in
-  render ~inject ~can_undo ~can_redo ~open_builder ~difficulty ~cards encounter
+  render ~inject ~can_undo ~can_redo ~open_builder ~cards encounter
 ;;

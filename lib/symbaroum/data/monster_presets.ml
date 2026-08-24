@@ -17,5 +17,3 @@ let by_category =
   |> Map.map ~f:List.rev
   |> Map.to_alist
 ;;
-
-let modellable = List.filter all ~f:Monster_preset.is_modellable

@@ -15,12 +15,13 @@ drives every decision here: `Core` not `Stdlib`, `.mli` for every module, `ppx_e
 of the deliverable as behaviour — an OCaml repo written in tutorial style with assoc lists
 signals the opposite of what we want.
 
-**Two artifacts are the actual deliverable. Everything else serves them.**
+**The deliverable is a README table:** *illegal state TypeScript permitted → the OCaml
+type that deletes it → the test documenting the bug it caused.*
 
-1. `doc/model.md` — derivation of the combat probability model, its state-space reduction,
-   and its stated assumptions.
-2. A README table: *illegal state TypeScript permitted → the OCaml type that deletes it →
-   the test documenting the bug it caused.*
+There was a second one — `doc/model.md`, the derivation of a combat probability model —
+and on 2026-08-24 the human had it **removed from the tree**. It is in the history, and
+the decisions log says why. Do not restore it without reading that row: the objection was
+not to the mathematics.
 
 This is 12–20 focused days of work spanning many sessions **with no shared context between
 them**. This file is the only continuity. Trust it over any recollection.
@@ -40,6 +41,10 @@ Phase:        ALL EIGHT COMPLETE. The port is done and green.
               Pages deploy is gone and CI does not run; `scripts/check.sh` is the
               four checks and `scripts/deploy_vercel.sh` is the deploy. See the
               decisions log.
+              2026-08-24 - THE PROBABILITY MODEL IS DELETED. `lib/symbaroum/model/`,
+              `test/model/`, `doc/model.md`, the difficulty readout and the CLI's
+              `analyze` are gone. Phase 5 below is kept as a record of what was
+              built; it does NOT describe the current tree. See the decisions log.
 Last session: 2026-08-23 - Phases 6 and 7 (the Bonsai UI, done as one pass) and
               Phase 8 (CI, deploy, README). Then a prose cull: every module doc
               comment kept its first paragraph and lost the essay, about 950
@@ -154,6 +159,7 @@ of rationale.
 | 2026-08-23 | **A `Bonsai.state` setter closes over the old value; use a state machine when two updates can land before a render** | Ticking four player characters put one in the fight, because each handler read the same stale set. The selection is a `state_machine0` where the action says *what to do* rather than *what the answer is*. Found by clicking, not by reading. |
 | 2026-08-23 | **Saving and the difficulty analysis are polled, not edge-triggered** | Both should cost one operation per burst of keystrokes rather than one per character. Polling also removes the plan's monotone request counter for stale analyses -- there is only ever one in flight -- which is the better kind of simplification. |
 | 2026-08-23 | **The NPC form holds strings, and parses once on submit** | Exactly what `npc_draft.mli` already said: the React `NpcDraft` holds what the user typed and `Npc_draft.t` holds what it parsed to. So `Form.t` is all strings -- which is also, conveniently, a Bonsai model without anything having to grow a `t_of_sexp` it should not have. A form that will not parse disables the button rather than producing a draft full of zeroes. |
+| 2026-08-24 | **The probability model is REMOVED from the tree, not fixed.** | The human's call, and correct. The objection was not to the mathematics -- the DP, the error bound and the MC oracle were rigorous, and the anchors pinned them. It is to what they were rigorous *about*. This app records **no weapon data for anybody**: player characters have no attack at all and monster damage dice were invented from the resistance band, with no UI to enter a real one (`Attack_profile.Source.From_data` was unreachable except by hand-editing a v2 save). Damage is the largest single lever on an attrition outcome. Abilities, traits and mystical powers -- most of what decides a Symbaroum fight -- are not recorded either. `doc/model.md` stated all of this honestly, and that was not enough: `Difficulty: Balanced -- 70% win` is a verdict, and a GM reads the verdict, not the caveat list. Precision about the arithmetic is not accuracy about the fight. **Do not rebuild this without weapon and ability data and a way for the GM to enter them.** |
 | 2026-08-24 | **SUPERSEDES the GitHub Pages row below: the site is built locally and deployed to Vercel by pushing it to an orphan `vercel-deploy` branch.** | GitHub Actions turned out to be unavailable on this account, which removes both the CI and the Pages half of the previous row in one go. Vercel has no OCaml toolchain, so the only shape that works is: build here, publish the output. The output does not go on `ocaml-port` -- the reason `site/` was gitignored in the first place has not changed -- so it goes on its own branch as a single orphan commit, force-replaced each deploy, sharing no history and carrying no source. The commit message names the source commit, which is the only thing that makes "what is live?" answerable without it. `vercel.json` also sets `git.deploymentEnabled` false for `ocaml-port`, so pushing source does not start a build that could not succeed. `master` has no `vercel.json`, so production is untouched by all of this. |
 | 2026-08-24 | **`scripts/check.sh` is the gate; `ci.yml` is kept as documentation** | With Actions unavailable, the four checks existed in two places that could not run (a workflow, a README code block) and nowhere that could. The script is now the single place, the README points at it, and the workflow stays so that enabling Actions later is a settings change rather than a rewrite. Its Pages deploy job is deleted rather than left to rot. |
 | 2026-08-23 | **Deploy goes to GitHub Pages from CI; the live Vercel URL is not touched** | The plan suggested committing the built `public/` to the branch Vercel watches. That branch is `master`, and replacing a live site is a decision rather than a side effect of a green build. CI publishes to Pages, `vercel.json` and `scripts/build_site.sh` are ready for the alternative, and `site/` is gitignored -- a megabyte of generated JavaScript does not belong in the history. |
@@ -742,7 +748,9 @@ On disk: keep *reading* the five `sct.v1.*` keys forever; write one consolidated
 
 ---
 
-## Phase 5 — Probability model  ⏱ 2–4 days — ✅ COMPLETE (2026-08-23)
+## Phase 5 — Probability model  ⏱ 2–4 days — ✅ COMPLETE (2026-08-23), ❌ REMOVED (2026-08-24)
+
+> **This phase is history, not documentation.** Everything below was built, was green, and was then deleted from the tree on the human's instruction -- see the decisions log. It is kept because the reasoning is worth having and because the code is one `git show` away, not because any of it describes the current repository.
 
 This is the centerpiece and the artifact you actually want read. It replaces the heuristic at
 [EncounterPanel.tsx:5-35](src/components/panels/EncounterPanel.tsx:5), whose weights
@@ -1129,6 +1137,8 @@ once `.mli`s and tests are counted.
 ---
 
 ## Open questions / blocked
+
+- [ ] **`Attack_profile` has no consumer left.** It was built for the model, and it survives the model's deletion because it is a field on `Combatant` and `Bestiary_entry` and part of the **v2 save format**. Removing it is a format change plus a migration, not a deletion, so it was left alone rather than done quietly. `Caveat` is fine and stays: `Monster_preset` still produces all five constructors when it normalizes the shipped data, which is a statement about data quality rather than about a model.
 
 ### ✅ RESOLVED — the toolchain contradiction (was blocking)
 

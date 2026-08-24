@@ -6,8 +6,8 @@ open! Symbaroum
    applies; a player character's sheet prints the roll-under target itself. Both
    describe the same quantity -- a creature whose Quick is the target -- and
    differ only by [10 - x], which is why [Defense.t] stores one of them and names
-   both constructors. Where each reading is applied is in [Migrate] and in
-   [doc/model.md]; the ledger row is [test_v1_defense_reads_by_side]. *)
+   both constructors. Where each reading is applied is in [Migrate]; the ledger
+   row is [test_v1_defense_reads_by_side]. *)
 let%expect_test "the two preset spellings of Defence reconcile to one value" =
   let show label result =
     print_s [%message "" ~_:(label : string) ~_:(result : Defense.t Or_error.t)]

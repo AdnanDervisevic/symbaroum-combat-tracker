@@ -17,10 +17,7 @@ type t =
           {!Symbaroum.Attack_profile.damage_prior}. *)
   | No_attack_profile
   (** The combatant records no weapon, which is every player character in
-          the shipped roster, so {!Symbaroum.Fighter} assumed an average one. A
-          model that refused to guess here would report that every party loses
-          every fight, which is not a cautious answer but a useless one -- so it
-          guesses, and says so, which is the whole purpose of this type. *)
+          the shipped roster and every shipped preset. *)
 [@@deriving compare, equal, sexp, quickcheck]
 
 (** A sentence for the UI. *)

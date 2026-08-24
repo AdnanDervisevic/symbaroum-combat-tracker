@@ -14,16 +14,14 @@ let render =
            ; "Pain Threshold triggers auto-prone + warnings; amount input catches big \
               hits."
            ; "Edit per card when you need to tweak stats mid-session."
-           ; "Difficulty is an absorption probability, not a heuristic. Read the \
-              expected casualties before the percentage."
            ]
            ~f:(fun line -> Vdom.Node.li [ Ui.text line ]))
     ; Ui.muted
         ~small:true
         [ Ui.text
-            "Rules reference: Symbaroum core book. The to-hit reconstruction and its \
-             situational modifiers are documented, with what is and is not verified, in \
-             doc/model.md."
+            "Rules reference: Symbaroum core book. This tracker records initiative, \
+             toughness and defence; it does not know about abilities, traits or mystical \
+             powers, and does not try to judge how a fight will go."
         ]
     ; Ui.muted
         ~small:true

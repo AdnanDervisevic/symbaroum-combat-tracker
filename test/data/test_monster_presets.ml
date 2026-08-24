@@ -65,8 +65,7 @@ let%expect_test "the Defense reconciliation, in aggregate" =
         (readings : (Symbaroum.Monster_preset.Defense_reading.t * int) list)
         ~no_toughness:(count (fun p -> Option.is_none p.toughness) : int)
         ~unparsed_armor:(count (fun p -> Symbaroum.Armor.is_unparsed p.armor) : int)
-        ~no_attack:(count (fun p -> Option.is_none p.attack) : int)
-        ~modellable:(List.length Symbaroum.Monster_presets.modellable : int)];
+        ~no_attack:(count (fun p -> Option.is_none p.attack) : int)];
   [%expect
     {|
     ((readings (
@@ -75,8 +74,7 @@ let%expect_test "the Defense reconciliation, in aggregate" =
        (Unknown            0)))
      (no_toughness   7)
      (unparsed_armor 0)
-     (no_attack      0)
-     (modellable     79)) |}]
+     (no_attack      0)) |}]
 ;;
 
 (* Worth reading closely. For three of these five the substitution is a no-op --

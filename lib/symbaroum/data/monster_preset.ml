@@ -142,7 +142,3 @@ let initiative t =
   | None -> Initiative.zero
   | Some quick -> Initiative.of_int_clamped (Attribute_value.to_int quick)
 ;;
-
-let is_modellable t =
-  Option.is_some t.toughness && Option.is_some t.defense && Option.is_some t.attack
-;;
