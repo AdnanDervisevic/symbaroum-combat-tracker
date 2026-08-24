@@ -1,8 +1,14 @@
 import type { Character, EncounterState, ExportPayload, BestiaryEntry } from '../types';
-import { CURRENT_SAVE_VERSION } from '../types';
 import { readBestiary, readCharacters, readEncounter } from './migrate';
 
+/**
+ * The save format this app writes, and the ones it can read. Version 1 is the
+ * shape the app originally shipped with; it stays readable forever, because
+ * people have exported files in it.
+ */
+export const CURRENT_SAVE_VERSION = 2;
 const SUPPORTED_VERSIONS = [1, 2];
+const supportedList = SUPPORTED_VERSIONS.join(' or ');
 
 function createExportPayload(
   characters: Character[],
@@ -59,7 +65,7 @@ export function validateImportData(data: unknown): ImportResult {
   if (!SUPPORTED_VERSIONS.includes(payload.version)) {
     return {
       success: false,
-      error: `Unsupported save version ${payload.version}; this app reads version ${SUPPORTED_VERSIONS.join(' and ')}.`,
+      error: `Unsupported save version ${payload.version}; this app reads version ${supportedList}.`,
     };
   }
 

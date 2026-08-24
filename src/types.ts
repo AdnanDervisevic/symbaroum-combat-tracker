@@ -103,8 +103,6 @@ export type EncounterState = {
   nameCounter: Record<string, number>
 }
 
-export const CURRENT_SAVE_VERSION = 2
-
 export type ExportPayload = {
   version: number
   characters: Character[]

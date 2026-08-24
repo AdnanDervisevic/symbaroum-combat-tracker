@@ -91,7 +91,9 @@ function applyMemberPatch(member: Combatant, patch: MemberPatch): Combatant {
     case "toughnessMax":
       return { ...member, toughness: setMax(member.toughness, patch.value) };
     case "defense":
-      return { ...member, defense: patch.value };
+      // Clamped here as well as in the input, so the bound is a property of the
+      // transition rather than of the widget that happens to raise it.
+      return { ...member, defense: clamp(patch.value, 1, 20) };
     case "armor":
       return { ...member, armor: patch.value };
     case "painThreshold":
@@ -601,21 +603,31 @@ function App() {
     setEditingIds((prev) => ({ ...prev, [memberId]: !prev[memberId] }));
   }
 
+  // Mirror roster edits into the combatants that came from them.
+  //
+  // This writes through the history-recording setter, so without a coalescing
+  // key it is the per-keystroke undo bug again by a side door: renaming a
+  // character who is in the fight would push one encounter entry per letter. A
+  // shared key collapses a run of roster edits into one, which is the right
+  // grain anyway -- these are consequences of an edit, not edits.
   useEffect(() => {
-    setEncounter((prev) => {
-      if (!prev.members.length) return prev;
-      const byId = new Map(characters.map((pc) => [pc.id, pc]));
-      let changed = false;
-      const members = prev.members.map((member) => {
-        if (member.source !== 'pc' || !member.refId) return member;
-        const pc = byId.get(member.refId);
-        if (!pc) return member;
-        const synced = syncMemberFromPc(member, pc);
-        if (synced !== member) changed = true;
-        return synced;
-      });
-      return changed ? { ...prev, members } : prev;
-    });
+    setEncounter(
+      (prev) => {
+        if (!prev.members.length) return prev;
+        const byId = new Map(characters.map((pc) => [pc.id, pc]));
+        let changed = false;
+        const members = prev.members.map((member) => {
+          if (member.source !== 'pc' || !member.refId) return member;
+          const pc = byId.get(member.refId);
+          if (!pc) return member;
+          const synced = syncMemberFromPc(member, pc);
+          if (synced !== member) changed = true;
+          return synced;
+        });
+        return changed ? { ...prev, members } : prev;
+      },
+      { coalesce: 'roster-sync' }
+    );
   }, [characters, setEncounter]);
 
   return (

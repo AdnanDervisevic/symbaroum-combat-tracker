@@ -105,11 +105,22 @@ export function readBestiaryEntry(v: unknown): BestiaryEntry {
 
 export const readBestiary = (v: unknown): BestiaryEntry[] => asArray(v).map(readBestiaryEntry)
 
-function readCombatant(v: unknown, maxByRef: Map<string, number>): Combatant {
+function readCombatant(
+  v: unknown,
+  maxByRef: Map<string, number>,
+  report: (correction: string) => void
+): Combatant {
   const m = asRecord(v)
   const id = asString(m.id) || uid('cmb')
   const refId = asString(m.refId) || null
-  const isPc = asString(m.source) === 'pc' && !!refId
+  const claimsPc = asString(m.source) === 'pc'
+  const isPc = claimsPc && !!refId
+  // The union has no room for "a player character belonging to nobody", and
+  // demoting one is a change to the file worth mentioning rather than making
+  // quietly.
+  if (claimsPc && !isPc) {
+    report(`${asString(m.name, 'A combatant')} was a player character with no roster entry; kept as an NPC.`)
+  }
   // A wounded combatant's maximum was never stored, so recover it from the
   // roster entry or bestiary template it came from.
   const known = isPc ? maxByRef.get(refId as string) : maxByRef.get(asString(m.monsterType))
@@ -168,13 +179,16 @@ export function readEncounter(
   for (const c of context.characters ?? []) maxByRef.set(c.id, c.toughness)
   for (const b of context.bestiary ?? []) maxByRef.set(b.monsterType, b.toughness)
 
+  const report = (correction: string) => corrections.push(correction)
   const seen = new Set<string>()
   const members: Combatant[] = asArray(e.members).map((raw) => {
-    const member = readCombatant(raw, maxByRef)
-    if (seen.has(member.id)) {
-      corrections.push(`Two combatants shared the id ${member.id}; the second was renumbered.`)
-      member.id = uid('cmb')
+    const read = readCombatant(raw, maxByRef, report)
+    if (!seen.has(read.id)) {
+      seen.add(read.id)
+      return read
     }
+    corrections.push(`Two combatants shared the id ${read.id}; the second was renumbered.`)
+    const member = { ...read, id: uid('cmb') }
     seen.add(member.id)
     return member
   })
@@ -194,11 +208,16 @@ export function readEncounter(
     corrections.push(`The turn marker pointed at position ${rawIndex}; moved to ${turnIndex}.`)
   }
 
-  let nameCounter = asRecord(e.nameCounter) as Record<string, number>
-  const looksUsable =
-    Object.keys(nameCounter).length > 0 &&
-    Object.values(nameCounter).every((n) => typeof n === 'number' && Number.isFinite(n))
-  if (!looksUsable) {
+  // Absent is not the same as empty. An encounter whose NPCs were all named by
+  // hand legitimately has `{}`, and rebuilding that on every read would report a
+  // correction which had not been made.
+  const hasCounter =
+    !!e.nameCounter && typeof e.nameCounter === 'object' && !Array.isArray(e.nameCounter)
+  const stored = asRecord(e.nameCounter) as Record<string, number>
+  const usable =
+    hasCounter && Object.values(stored).every((n) => typeof n === 'number' && Number.isFinite(n))
+  let nameCounter = stored
+  if (!usable) {
     nameCounter = rebuildNameCounter(members)
     if (members.length) corrections.push('Rebuilt the NPC name counter from the names in use.')
   }

@@ -637,6 +637,11 @@ button.ghost {
 }
 
 @media (max-width: 640px) {
+  /* Six fields across a phone-width card leaves ~40px each, which is not enough
+     for a three-digit toughness. Two rows of three. */
+  .stat-row.single-line {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
   .compact-header {
     flex-direction: column;
   }
