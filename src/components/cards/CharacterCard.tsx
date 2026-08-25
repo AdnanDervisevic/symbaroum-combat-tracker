@@ -1,5 +1,5 @@
 import type { Character, CharacterAttributes, AttributeKey } from '../../types';
-import { ATTRIBUTE_FIELDS } from '../../utils/combatLogic';
+import { ATTRIBUTE_FIELDS } from '../../utils/character';
 import { NumberField, OptionalNumberField } from '../common/NumberField';
 import { MAX_TOUGHNESS } from '../../utils/toughness';
 
@@ -84,8 +84,13 @@ export function CharacterCard({ character, onUpdate, onDelete, onAttributeChange
           {ATTRIBUTE_FIELDS.map(({ key, label }) => (
             <label key={key}>
               <span>{label}</span>
+              {/* Text rather than number for the same reason as NumberField:
+                  a focused number input changes its value on scroll. */}
               <input
-                type="number"
+                type="text"
+                inputMode="numeric"
+                pattern="[0-9]*"
+                autoComplete="off"
                 value={character.attributes?.[key] ?? ''}
                 onChange={(e) => onAttributeChange(character.id, key, e.target.value)}
               />

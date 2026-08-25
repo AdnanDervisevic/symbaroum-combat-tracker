@@ -1,5 +1,5 @@
 import type { Character, Combatant, CharacterAttributes, AttributeKey } from '../types';
-import { uid } from '../utils';
+import { uid } from './core';
 import { makeToughness, setMax } from './toughness';
 
 export const ATTRIBUTE_FIELDS = [
@@ -28,12 +28,12 @@ export const normalizeAttributes = (attrs?: unknown): CharacterAttributes | null
   return Object.keys(next).length ? next : null;
 };
 
-export const cloneAttributes = (attrs?: unknown) => {
+const cloneAttributes = (attrs?: unknown) => {
   const normalized = normalizeAttributes(attrs);
   return normalized ? { ...normalized } : null;
 };
 
-export const areAttributesEqual = (
+const areAttributesEqual = (
   a?: CharacterAttributes | null,
   b?: CharacterAttributes | null,
 ) => {
@@ -88,8 +88,11 @@ export const buildNewCharacter = (): Character => ({
   isBuiltin: false,
 });
 
-export const characterToCombatant = (pc: Character): Combatant => ({
-  id: uid("cmb"),
+export const characterToCombatant = (
+  pc: Character,
+  makeId: (prefix: string) => string = uid
+): Combatant => ({
+  id: makeId("cmb"),
   source: "pc",
   refId: pc.id,
   name: pc.name,

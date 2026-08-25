@@ -48,8 +48,6 @@ export type Character = {
   isBuiltin?: boolean
 }
 
-export type CombatantSource = 'pc' | 'npc'
-
 type CombatantCommon = {
   id: string
   name: string
@@ -108,6 +106,27 @@ export type ExportPayload = {
   characters: Character[]
   encounter: EncounterState
   bestiary?: BestiaryEntry[]
+}
+
+/**
+ * What the add-NPC form holds.
+ *
+ * It lives here rather than in the modal that renders it because `App` and the
+ * encounter transitions both speak it — a component owning a type its callers
+ * depend on has the arrow pointing the wrong way.
+ */
+export type NpcDraft = {
+  monsterType: string
+  name: string
+  count: number
+  initiative: number
+  /** The maximum a fresh one of these starts at. */
+  toughness: number
+  defense: number
+  armor: string
+  painThreshold: number | null
+  note: string
+  attributes?: CharacterAttributes | null
 }
 
 /**

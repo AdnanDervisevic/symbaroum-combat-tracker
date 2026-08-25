@@ -1,26 +1,20 @@
 import { useEffect, useRef } from 'react';
 import type { FormEvent as ReactFormEvent } from 'react';
-import type { Character, EncounterState, EncounterHistoryEntry, CharacterAttributes, BestiaryEntry } from '../../types';
+import type {
+  Character,
+  EncounterState,
+  EncounterHistoryEntry,
+  BestiaryEntry,
+  NpcDraft,
+} from '../../types';
 import { DEFAULT_MONSTERS, MONSTER_CATEGORIES } from '../../data/defaultMonsters';
 import type { MonsterPreset } from '../../data/defaultMonsters';
-import { NPC_COUNT_MIN, NPC_COUNT_MAX } from '../../utils/npcConstants';
+import { NPC_COUNT_MIN, NPC_COUNT_MAX } from '../../utils/encounter';
 import { NumberField, OptionalNumberField } from '../common/NumberField';
 import { MAX_TOUGHNESS } from '../../utils/toughness';
 
 type FormEvent = ReactFormEvent<HTMLFormElement>;
 
-type NpcDraft = {
-  monsterType: string;
-  name: string;
-  count: number;
-  initiative: number;
-  toughness: number;
-  defense: number;
-  armor: string;
-  painThreshold: number | null;
-  note: string;
-  attributes?: CharacterAttributes | null;
-};
 
 type Props = {
   characters: Character[];

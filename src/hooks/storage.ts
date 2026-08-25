@@ -18,7 +18,7 @@ export function onStorageError(next: StorageErrorHandler | null) {
   handler = next
 }
 
-export function reportStorageError(key: string, err: unknown) {
+function reportStorageError(key: string, err: unknown) {
   if (handler) handler(key, err)
   else console.warn('Failed to write localStorage key ' + key, err)
 }

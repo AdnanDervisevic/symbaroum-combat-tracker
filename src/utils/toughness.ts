@@ -1,5 +1,5 @@
 import type { Toughness } from '../types'
-import { clamp } from '../utils'
+import { clamp } from './core'
 
 export const MAX_TOUGHNESS = 999
 
