@@ -1,38 +1,45 @@
 import { useMemo } from 'react';
-import type { Combatant, EncounterState } from '../../types';
+import type { Combatant, EncounterState, MemberPatch } from '../../types';
 import { CombatantCard } from '../cards/CombatantCard';
+import { isDown } from '../../utils/toughness';
 
-function calculateDifficulty(members: Combatant[]): { label: string; pcStats: string; npcStats: string } | null {
+/**
+ * What each side brings, as facts rather than a verdict.
+ *
+ * There used to be a difficulty score here:
+ *
+ *   const score = (toughnessRatio * 0.5) + (numbersRatio * 0.3) + (defenseRatio * 0.2);
+ *
+ * The weights came from nowhere, and `defenseRatio` divided by the party's
+ * average defence — which is zero for the shipped placeholder characters, so
+ * with stock data it returned `Infinity` and the label was meaningless.
+ *
+ * It is not replaced by a better score. This app records no weapons, abilities,
+ * traits or mystical powers, which is most of what decides a Symbaroum fight, so
+ * any number computed from toughness and defence alone would be trusted and
+ * wrong. Show the totals and let the GM judge.
+ */
+function sideSummary(members: Combatant[]) {
+  const describe = (side: Combatant[]) => {
+    const standing = side.filter((m) => !isDown(m.toughness));
+    const toughness = standing.reduce((sum, m) => sum + m.toughness.current, 0);
+    return { count: side.length, standing: standing.length, toughness };
+  };
   const pcs = members.filter((m) => m.source === 'pc');
   const npcs = members.filter((m) => m.source === 'npc');
-
-  if (pcs.length === 0 || npcs.length === 0) return null;
-
-  const pcToughness = pcs.reduce((sum, m) => sum + m.toughness, 0);
-  const npcToughness = npcs.reduce((sum, m) => sum + m.toughness, 0);
-  const pcDefense = Math.round(pcs.reduce((sum, m) => sum + m.defense, 0) / pcs.length);
-  const npcDefense = Math.round(npcs.reduce((sum, m) => sum + m.defense, 0) / npcs.length);
-
-  // Ratio considers: toughness pool, numbers advantage, defense
-  const toughnessRatio = npcToughness / pcToughness;
-  const numbersRatio = npcs.length / pcs.length;
-  const defenseRatio = npcDefense / pcDefense;
-  const score = (toughnessRatio * 0.5) + (numbersRatio * 0.3) + (defenseRatio * 0.2);
-
-  let label: string;
-  if (score < 0.5) label = 'Trivial';
-  else if (score < 0.8) label = 'Easy';
-  else if (score < 1.2) label = 'Balanced';
-  else if (score < 1.6) label = 'Hard';
-  else if (score < 2.0) label = 'Deadly';
-  else label = 'Overwhelming';
-
-  return {
-    label,
-    pcStats: `${pcs.length} PCs (${pcToughness} HP, ${pcDefense} avg def)`,
-    npcStats: `${npcs.length} NPCs (${npcToughness} HP, ${npcDefense} avg def)`,
-  };
+  if (!pcs.length && !npcs.length) return null;
+  return { pcs: describe(pcs), npcs: describe(npcs) };
 }
+
+const sideLabel = (
+  noun: string,
+  side: { count: number; standing: number; toughness: number }
+) => {
+  const plural = side.count === 1 ? '' : 's';
+  const down = side.count - side.standing;
+  const downNote = down > 0 ? `, ${down} down` : '';
+  return `${side.count} ${noun}${plural} (${side.toughness} toughness standing${downNote})`;
+};
 
 type Props = {
   encounter: EncounterState;
@@ -46,7 +53,7 @@ type Props = {
   onNextTurn: () => void;
   onUndo: () => void;
   onRedo: () => void;
-  onUpdateMember: (id: string, patch: Partial<Combatant>) => void;
+  onUpdateMember: (id: string, patch: MemberPatch) => void;
   onRemoveMember: (id: string) => void;
   onMoveMember: (id: string, direction: 'up' | 'down') => void;
   onToggleEditing: (id: string) => void;
@@ -78,7 +85,7 @@ export function EncounterPanel({
     ? "Round " + encounter.round + " — Active: " + (activeMember?.name ?? "-")
     : "No combatants yet.";
 
-  const difficulty = useMemo(() => calculateDifficulty(encounter.members), [encounter.members]);
+  const summary = useMemo(() => sideSummary(encounter.members), [encounter.members]);
 
   return (
     <section className="panel">
@@ -94,9 +101,9 @@ export function EncounterPanel({
         </div>
       </div>
       <p className="muted small">{roundInfo}</p>
-      {difficulty && (
+      {summary && (
         <p className="muted small">
-          <strong>Difficulty: {difficulty.label}</strong> — {difficulty.pcStats} vs {difficulty.npcStats}
+          {sideLabel('PC', summary.pcs)} vs {sideLabel('NPC', summary.npcs)}
         </p>
       )}
       <div className="cards encounter-grid">

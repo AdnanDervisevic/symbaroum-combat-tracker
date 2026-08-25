@@ -1,6 +1,14 @@
 import type { Character, EncounterState, ExportPayload, BestiaryEntry } from '../types';
+import { readBestiary, readCharacters, readEncounter } from './migrate';
 
-const CURRENT_VERSION = 1;
+/**
+ * The save format this app writes, and the ones it can read. Version 1 is the
+ * shape the app originally shipped with; it stays readable forever, because
+ * people have exported files in it.
+ */
+export const CURRENT_SAVE_VERSION = 2;
+const SUPPORTED_VERSIONS = [1, 2];
+const supportedList = SUPPORTED_VERSIONS.join(' or ');
 
 function createExportPayload(
   characters: Character[],
@@ -8,7 +16,7 @@ function createExportPayload(
   bestiary: BestiaryEntry[]
 ): ExportPayload {
   return {
-    version: CURRENT_VERSION,
+    version: CURRENT_SAVE_VERSION,
     characters,
     encounter,
     bestiary,
@@ -31,9 +39,18 @@ export function exportToFile(characters: Character[], encounter: EncounterState,
 }
 
 export type ImportResult =
-  | { success: true; data: ExportPayload }
+  | { success: true; data: ExportPayload; corrections: string[] }
   | { success: false; error: string };
 
+/**
+ * Refuse only what is structurally impossible; repair the rest and say so.
+ *
+ * The version used to be checked for being a number and never compared to
+ * anything, so a file claiming version 7 was accepted and cast to the current
+ * shape. And nothing looked at `turnIndex` or `round` at all, so an encounter
+ * with no members and a turn marker at position 5 imported cleanly into a state
+ * the UI cannot otherwise produce.
+ */
 export function validateImportData(data: unknown): ImportResult {
   if (!data || typeof data !== 'object') {
     return { success: false, error: 'Invalid file format' };
@@ -41,8 +58,15 @@ export function validateImportData(data: unknown): ImportResult {
 
   const payload = data as Record<string, unknown>;
 
-  if (typeof payload.version !== 'number') {
+  if (typeof payload.version !== 'number' || !Number.isFinite(payload.version)) {
     return { success: false, error: 'Missing or invalid version' };
+  }
+
+  if (!SUPPORTED_VERSIONS.includes(payload.version)) {
+    return {
+      success: false,
+      error: `Unsupported save version ${payload.version}; this app reads version ${supportedList}.`,
+    };
   }
 
   if (!Array.isArray(payload.characters)) {
@@ -53,25 +77,19 @@ export function validateImportData(data: unknown): ImportResult {
     return { success: false, error: 'Missing or invalid encounter data' };
   }
 
-  const encounter = payload.encounter as Record<string, unknown>;
-  if (!Array.isArray(encounter.members)) {
+  const encounterRaw = payload.encounter as Record<string, unknown>;
+  if (!Array.isArray(encounterRaw.members)) {
     return { success: false, error: 'Missing or invalid encounter members' };
   }
 
-  // Validate each character has required fields
-  for (const char of payload.characters) {
-    if (!char || typeof char !== 'object') {
-      return { success: false, error: 'Invalid character entry' };
-    }
-    const c = char as Record<string, unknown>;
-    if (typeof c.id !== 'string' || typeof c.name !== 'string') {
-      return { success: false, error: 'Character missing required fields (id, name)' };
-    }
-  }
+  const characters = readCharacters(payload.characters);
+  const bestiary = readBestiary(payload.bestiary);
+  const { encounter, corrections } = readEncounter(payload.encounter, { characters, bestiary });
 
   return {
     success: true,
-    data: payload as unknown as ExportPayload
+    data: { version: CURRENT_SAVE_VERSION, characters, encounter, bestiary },
+    corrections,
   };
 }
 

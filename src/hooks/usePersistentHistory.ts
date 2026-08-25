@@ -1,14 +1,29 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { readStorage, versionedKey, writeStorage } from './storage';
 
 type HistoryState<T> = {
   past: T[];
   present: T;
   future: T[];
+  /**
+   * The coalescing key of the entry currently on top. Another change carrying
+   * the same key replaces `present` instead of pushing, so typing a sentence
+   * into a note is one undo rather than fifty.
+   */
+  lastKey: string | null;
+};
+
+export type SetOptions = {
+  /**
+   * Identifies a run of edits to the same thing, e.g. `note:cmb_123`. Field
+   * edits pass one; structural changes (add, remove, sort, next turn) do not.
+   */
+  coalesce?: string | null;
 };
 
 type UsePersistentHistoryReturn<T> = [
   T,
-  (value: T | ((prev: T) => T)) => void,
+  (value: T | ((prev: T) => T), options?: SetOptions) => void,
   {
     undo: () => void;
     redo: () => void;
@@ -18,75 +33,69 @@ type UsePersistentHistoryReturn<T> = [
 ];
 
 const MAX_HISTORY = 50;
-const STORAGE_VERSION = 1;
 
-function getVersionedKey(key: string): string {
-  if (key.startsWith('sct.')) {
-    return `sct.v${STORAGE_VERSION}.${key.slice(4)}`;
-  }
-  return key;
+/**
+ * The only writer of a history record, so the capacity trim cannot be forgotten
+ * by one of three call sites again -- which is exactly what happened to `redo`.
+ */
+function pushed<T>(past: T[], present: T, future: T[], lastKey: string | null): HistoryState<T> {
+  return { past: past.slice(-MAX_HISTORY), present, future, lastKey };
 }
 
-function loadFromStorage<T>(key: string, fallback: () => T): T {
-  if (typeof window === 'undefined') return fallback();
-  const versionedKey = getVersionedKey(key);
+/**
+ * Structural, not reference, equality.
+ *
+ * The old check was `newPresent === prev.present`, and every caller builds a
+ * fresh object literal, so it never fired once. The state here is one encounter,
+ * so stringifying it is cheap enough to do on each edit.
+ */
+function sameState<T>(a: T, b: T): boolean {
+  if (a === b) return true;
   try {
-    const raw = window.localStorage.getItem(versionedKey);
-    if (raw) return JSON.parse(raw) as T;
-    // Try old key migration
-    const oldRaw = window.localStorage.getItem(key);
-    if (oldRaw) {
-      const data = JSON.parse(oldRaw) as T;
-      window.localStorage.setItem(versionedKey, oldRaw);
-      window.localStorage.removeItem(key);
-      return data;
-    }
-    return fallback();
+    return JSON.stringify(a) === JSON.stringify(b);
   } catch {
-    return fallback();
+    return false;
   }
 }
 
 export function usePersistentHistory<T>(
   key: string,
-  initializer: () => T
+  initializer: () => T,
+  migrateV1?: (raw: unknown) => T
 ): UsePersistentHistoryReturn<T> {
-  const versionedKey = getVersionedKey(key);
+  const storageKey = versionedKey(key);
 
   const [history, setHistory] = useState<HistoryState<T>>(() => ({
     past: [],
-    present: loadFromStorage(key, initializer),
+    present: readStorage(key, initializer, migrateV1),
     future: [],
+    lastKey: null,
   }));
 
   const isFirstRender = useRef(true);
 
-  // Save to localStorage when present changes
   useEffect(() => {
     if (isFirstRender.current) {
       isFirstRender.current = false;
       return;
     }
-    try {
-      window.localStorage.setItem(versionedKey, JSON.stringify(history.present));
-    } catch (err) {
-      console.warn('Failed to save to localStorage', err);
-    }
-  }, [versionedKey, history.present]);
+    writeStorage(storageKey, history.present);
+  }, [storageKey, history.present]);
 
-  const setState = useCallback((value: T | ((prev: T) => T)) => {
+  const setState = useCallback((value: T | ((prev: T) => T), options?: SetOptions) => {
     setHistory((prev) => {
       const newPresent = typeof value === 'function'
         ? (value as (prev: T) => T)(prev.present)
         : value;
 
-      if (newPresent === prev.present) return prev;
+      if (sameState(newPresent, prev.present)) return prev;
 
-      return {
-        past: [...prev.past, prev.present].slice(-MAX_HISTORY),
-        present: newPresent,
-        future: [],
-      };
+      const coalesce = options?.coalesce ?? null;
+      if (coalesce !== null && coalesce === prev.lastKey) {
+        // Same field, still being edited: replace rather than stack up.
+        return pushed(prev.past, newPresent, [], coalesce);
+      }
+      return pushed([...prev.past, prev.present], newPresent, [], coalesce);
     });
   }, []);
 
@@ -95,11 +104,7 @@ export function usePersistentHistory<T>(
       if (prev.past.length === 0) return prev;
       const newPast = [...prev.past];
       const newPresent = newPast.pop()!;
-      return {
-        past: newPast,
-        present: newPresent,
-        future: [prev.present, ...prev.future],
-      };
+      return pushed(newPast, newPresent, [prev.present, ...prev.future], null);
     });
   }, []);
 
@@ -108,11 +113,7 @@ export function usePersistentHistory<T>(
       if (prev.future.length === 0) return prev;
       const newFuture = [...prev.future];
       const newPresent = newFuture.shift()!;
-      return {
-        past: [...prev.past, prev.present],
-        present: newPresent,
-        future: newFuture,
-      };
+      return pushed([...prev.past, prev.present], newPresent, newFuture, null);
     });
   }, []);
 

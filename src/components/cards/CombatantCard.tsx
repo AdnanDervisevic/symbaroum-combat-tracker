@@ -1,6 +1,7 @@
-import type { Combatant, CharacterAttributes } from '../../types';
-import { clamp } from '../../utils';
+import type { Combatant, CharacterAttributes, MemberPatch } from '../../types';
 import { ATTRIBUTE_FIELDS } from '../../utils/combatLogic';
+import { NumberField, OptionalNumberField } from '../common/NumberField';
+import { MAX_TOUGHNESS, formatToughness, isDown } from '../../utils/toughness';
 
 const hasAttributes = (attrs?: CharacterAttributes | null) =>
   !!attrs && ATTRIBUTE_FIELDS.some(({ key }) => attrs[key] !== null && attrs[key] !== undefined);
@@ -17,7 +18,7 @@ type Props = {
   isActive: boolean;
   isEditing: boolean;
   adjustValue: number;
-  onUpdate: (id: string, patch: Partial<Combatant>) => void;
+  onUpdate: (id: string, patch: MemberPatch) => void;
   onRemove: (id: string) => void;
   onMove: (id: string, direction: 'up' | 'down') => void;
   onToggleEditing: (id: string) => void;
@@ -37,8 +38,13 @@ export function CombatantCard({
   onAdjustInput,
   onApplyAdjustment,
 }: Props) {
+  const down = isDown(member.toughness);
   return (
-    <div className={"card encounter-card" + (isActive ? " active" : "")}>
+    <div
+      className={
+        "card encounter-card" + (isActive ? " active" : "") + (down ? " downed" : "")
+      }
+    >
       <div className="card-line compact-header">
         <div className="name-wrapper">
           <input
@@ -46,7 +52,7 @@ export function CombatantCard({
             value={member.name}
             readOnly={!isEditing}
             aria-readonly={!isEditing}
-            onChange={(e) => onUpdate(member.id, { name: e.target.value })}
+            onChange={(e) => onUpdate(member.id, { field: 'name', value: e.target.value })}
           />
           {member.monsterType && (
             <span className="monster-type-badge">{member.monsterType}</span>
@@ -65,44 +71,45 @@ export function CombatantCard({
         <div className="stat-row single-line">
           <label className="stat-field">
             <span>Init</span>
-            <input
-              type="number"
+            <NumberField
               value={member.initiative}
+              min={0}
+              max={99}
               readOnly={!isEditing}
-              aria-readonly={!isEditing}
-              onChange={(e) =>
-                onUpdate(member.id, {
-                  initiative: Number(e.target.value) || 0,
-                })
-              }
+              onCommit={(value) => onUpdate(member.id, { field: 'initiative', value })}
             />
           </label>
           <label className="stat-field">
+            {/* Current out of maximum. The maximum used to not exist at all --
+                one number was doing both jobs, so a wounded combatant had
+                forgotten what it started with. */}
             <span>Tough</span>
-            <input
-              type="number"
-              value={member.toughness}
+            <NumberField
+              value={member.toughness.current}
+              min={0}
+              max={member.toughness.max}
               readOnly={!isEditing}
-              aria-readonly={!isEditing}
-              onChange={(e) =>
-                onUpdate(member.id, {
-                  toughness: clamp(Number(e.target.value) || 0, 0, 999),
-                })
-              }
+              onCommit={(value) => onUpdate(member.id, { field: 'toughnessCurrent', value })}
+            />
+          </label>
+          <label className="stat-field">
+            <span>Max</span>
+            <NumberField
+              value={member.toughness.max}
+              min={1}
+              max={MAX_TOUGHNESS}
+              readOnly={!isEditing}
+              onCommit={(value) => onUpdate(member.id, { field: 'toughnessMax', value })}
             />
           </label>
           <label className="stat-field">
             <span>Def</span>
-            <input
-              type="number"
+            <NumberField
               value={member.defense}
+              min={1}
+              max={20}
               readOnly={!isEditing}
-              aria-readonly={!isEditing}
-              onChange={(e) =>
-                onUpdate(member.id, {
-                  defense: Number(e.target.value) || 0,
-                })
-              }
+              onCommit={(value) => onUpdate(member.id, { field: 'defense', value })}
             />
           </label>
           <label className="stat-field">
@@ -111,26 +118,23 @@ export function CombatantCard({
               value={member.armor}
               readOnly={!isEditing}
               aria-readonly={!isEditing}
-              onChange={(e) => onUpdate(member.id, { armor: e.target.value })}
+              onChange={(e) => onUpdate(member.id, { field: 'armor', value: e.target.value })}
             />
           </label>
           <label className="stat-field">
             <span>Pain Th.</span>
-            <input
-              type="number"
-              value={member.painThreshold ?? ""}
+            <OptionalNumberField
+              value={member.painThreshold}
+              min={0}
+              max={MAX_TOUGHNESS}
+              placeholder="never"
               readOnly={!isEditing}
-              aria-readonly={!isEditing}
-              onChange={(e) =>
-                onUpdate(member.id, {
-                  painThreshold:
-                    e.target.value === ""
-                      ? null
-                      : Math.max(0, Number(e.target.value) || 0),
-                })
-              }
+              onCommit={(value) => onUpdate(member.id, { field: 'painThreshold', value })}
             />
           </label>
+        </div>
+        <div className="toughness-readout">
+          {down ? 'Down' : formatToughness(member.toughness)}
         </div>
       </div>
       {hasAttributes(member.attributes) && (
@@ -154,7 +158,7 @@ export function CombatantCard({
           <input
             type="checkbox"
             checked={member.prone}
-            onChange={(e) => onUpdate(member.id, { prone: e.target.checked })}
+            onChange={(e) => onUpdate(member.id, { field: 'prone', value: e.target.checked })}
           />
           Prone
         </label>
@@ -162,7 +166,7 @@ export function CombatantCard({
           <input
             type="checkbox"
             checked={member.flanked}
-            onChange={(e) => onUpdate(member.id, { flanked: e.target.checked })}
+            onChange={(e) => onUpdate(member.id, { field: 'flanked', value: e.target.checked })}
           />
           Flanked
         </label>
@@ -170,17 +174,11 @@ export function CombatantCard({
       <div className="adjust-row inline">
         <label className="amount-inline">
           <span>Amount</span>
-          <input
-            type="number"
+          <NumberField
+            value={adjustValue}
             min={0}
             max={999}
-            value={adjustValue}
-            onChange={(e) =>
-              onAdjustInput(
-                member.id,
-                Math.max(0, Math.min(999, Number(e.target.value) || 0))
-              )
-            }
+            onCommit={(value) => onAdjustInput(member.id, value)}
           />
         </label>
         <div className="adjust-buttons">
@@ -190,7 +188,7 @@ export function CombatantCard({
       </div>
       <textarea
         value={member.note || ""}
-        onChange={(e) => onUpdate(member.id, { note: e.target.value })}
+        onChange={(e) => onUpdate(member.id, { field: 'note', value: e.target.value })}
         placeholder="Notes / conditions"
       />
       <div className="card-actions">
