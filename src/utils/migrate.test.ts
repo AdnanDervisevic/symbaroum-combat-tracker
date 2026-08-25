@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { readBestiary, readCharacters, readEncounter, rebuildNameCounter } from './migrate'
+import { readBestiary, readCharacters, readEncounter } from './migrate'
+import { rebuildNameCounter } from './encounter'
 import type { Combatant } from '../types'
 
 /**

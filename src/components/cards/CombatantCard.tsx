@@ -1,5 +1,5 @@
 import type { Combatant, CharacterAttributes, MemberPatch } from '../../types';
-import { ATTRIBUTE_FIELDS } from '../../utils/combatLogic';
+import { ATTRIBUTE_FIELDS } from '../../utils/character';
 import { NumberField, OptionalNumberField } from '../common/NumberField';
 import { MAX_TOUGHNESS, formatToughness, isDown } from '../../utils/toughness';
 

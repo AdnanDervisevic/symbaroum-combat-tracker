@@ -7,7 +7,8 @@ import type {
 } from '../types'
 import { makeToughness } from './toughness'
 import { uid } from './core'
-import { normalizeAttributes } from './combatLogic'
+import { rebuildNameCounter } from './encounter'
+import { normalizeAttributes } from './character'
 
 /**
  * Reading version 1 data — the shape the app shipped with — and repairing
@@ -142,25 +143,6 @@ function readCombatant(
     : { ...common, source: 'npc', monsterType: asString(m.monsterType) || undefined }
 }
 
-/** The name prefix a monster type numbers under. Anonymous NPCs share "NPC". */
-export const counterKey = (monsterType?: string) => monsterType?.trim() || 'NPC'
-
-/**
- * v1 has no counter, so derive one from the largest suffix already in use. A
- * fight holding "Goblin 1" and "Goblin 3" must not hand out "Goblin 3" again.
- */
-export function rebuildNameCounter(members: Combatant[]): Record<string, number> {
-  const counter: Record<string, number> = {}
-  for (const m of members) {
-    const key = counterKey(m.monsterType)
-    const match = new RegExp(`^${key.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s+(\\d+)$`).exec(
-      m.name.trim()
-    )
-    const n = match ? Number(match[1]) : 0
-    if (n > (counter[key] ?? 0)) counter[key] = n
-  }
-  return counter
-}
 
 export type Repair = { encounter: EncounterState; corrections: string[] }
 

@@ -21,7 +21,7 @@ import type {
 } from "./types";
 import { clamp, uid } from "./utils/core";
 import { exportToFile, importFromFile } from "./utils/exportImport";
-import { normalizeAttributes, buildNewCharacter } from "./utils/combatLogic";
+import { normalizeAttributes, buildNewCharacter } from "./utils/character";
 import { readBestiary, readCharacters, readEncounter } from "./utils/migrate";
 import { isDown, makeToughness } from "./utils/toughness";
 import * as Encounter from "./utils/encounter";
