@@ -6,7 +6,7 @@ import type {
   Toughness,
 } from '../types'
 import { makeToughness } from './toughness'
-import { uid } from '../utils'
+import { uid } from './core'
 import { normalizeAttributes } from './combatLogic'
 
 /**

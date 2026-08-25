@@ -1,40 +1,10 @@
 import { useMemo } from 'react';
-import type { Combatant, EncounterState, MemberPatch } from '../../types';
+import type { EncounterState, MemberPatch } from '../../types';
 import { CombatantCard } from '../cards/CombatantCard';
-import { isDown } from '../../utils/toughness';
+import { sideTotals } from '../../utils/encounter';
+import type { SideTotals } from '../../utils/encounter';
 
-/**
- * What each side brings, as facts rather than a verdict.
- *
- * There used to be a difficulty score here:
- *
- *   const score = (toughnessRatio * 0.5) + (numbersRatio * 0.3) + (defenseRatio * 0.2);
- *
- * The weights came from nowhere, and `defenseRatio` divided by the party's
- * average defence — which is zero for the shipped placeholder characters, so
- * with stock data it returned `Infinity` and the label was meaningless.
- *
- * It is not replaced by a better score. This app records no weapons, abilities,
- * traits or mystical powers, which is most of what decides a Symbaroum fight, so
- * any number computed from toughness and defence alone would be trusted and
- * wrong. Show the totals and let the GM judge.
- */
-function sideSummary(members: Combatant[]) {
-  const describe = (side: Combatant[]) => {
-    const standing = side.filter((m) => !isDown(m.toughness));
-    const toughness = standing.reduce((sum, m) => sum + m.toughness.current, 0);
-    return { count: side.length, standing: standing.length, toughness };
-  };
-  const pcs = members.filter((m) => m.source === 'pc');
-  const npcs = members.filter((m) => m.source === 'npc');
-  if (!pcs.length && !npcs.length) return null;
-  return { pcs: describe(pcs), npcs: describe(npcs) };
-}
-
-const sideLabel = (
-  noun: string,
-  side: { count: number; standing: number; toughness: number }
-) => {
+const sideLabel = (noun: string, side: SideTotals) => {
   const plural = side.count === 1 ? '' : 's';
   const down = side.count - side.standing;
   const downNote = down > 0 ? `, ${down} down` : '';
@@ -85,7 +55,7 @@ export function EncounterPanel({
     ? "Round " + encounter.round + " — Active: " + (activeMember?.name ?? "-")
     : "No combatants yet.";
 
-  const summary = useMemo(() => sideSummary(encounter.members), [encounter.members]);
+  const summary = useMemo(() => sideTotals(encounter.members), [encounter.members]);
 
   return (
     <section className="panel">
