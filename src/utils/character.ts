@@ -28,12 +28,12 @@ export const normalizeAttributes = (attrs?: unknown): CharacterAttributes | null
   return Object.keys(next).length ? next : null;
 };
 
-export const cloneAttributes = (attrs?: unknown) => {
+const cloneAttributes = (attrs?: unknown) => {
   const normalized = normalizeAttributes(attrs);
   return normalized ? { ...normalized } : null;
 };
 
-export const areAttributesEqual = (
+const areAttributesEqual = (
   a?: CharacterAttributes | null,
   b?: CharacterAttributes | null,
 ) => {

@@ -48,8 +48,6 @@ export type Character = {
   isBuiltin?: boolean
 }
 
-export type CombatantSource = 'pc' | 'npc'
-
 type CombatantCommon = {
   id: string
   name: string

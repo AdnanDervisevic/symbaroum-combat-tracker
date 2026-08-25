@@ -34,7 +34,7 @@ export const NPC_COUNT_MAX = 20
 export type MakeId = (prefix: string) => string
 
 /** The name prefix a monster type numbers under. Anonymous NPCs share "NPC". */
-export const counterKey = (monsterType?: string) => monsterType?.trim() || 'NPC'
+const counterKey = (monsterType?: string) => monsterType?.trim() || 'NPC'
 
 /**
  * v1 has no counter, so derive one from the largest suffix already in use. A
@@ -70,7 +70,7 @@ export const activeMember = (state: EncounterState): Combatant | undefined =>
  * different combatant, or past the end of the array with nothing highlighted at
  * all. Whoever was active stays active if they survived.
  */
-export function withMembers(state: EncounterState, members: Combatant[]): EncounterState {
+function withMembers(state: EncounterState, members: Combatant[]): EncounterState {
   const activeId = activeMember(state)?.id
   let turnIndex = 0
   if (members.length) {
@@ -161,7 +161,7 @@ export function addNpcs(
  * `Partial<Combatant>` merge could set any field to any value including
  * `source` and a negative toughness.
  */
-export function applyMemberPatch(member: Combatant, patch: MemberPatch): Combatant {
+function applyMemberPatch(member: Combatant, patch: MemberPatch): Combatant {
   switch (patch.field) {
     case 'name':
       return { ...member, name: patch.value }
@@ -266,7 +266,7 @@ export type AdjustEvent =
  * number typed into the box: a combatant on 2 hit for 20 takes 2, and being
  * reduced to zero is *down* rather than prone.
  */
-export function resolveAdjustment(member: Combatant, mode: AdjustMode, amount: number) {
+function resolveAdjustment(member: Combatant, mode: AdjustMode, amount: number) {
   const { next, dealt } = applyDelta(member.toughness, mode === 'hurt' ? -amount : amount)
   const proned =
     mode === 'hurt' && next.current > 0 && exceedsPainThreshold(member.painThreshold, dealt)

@@ -64,9 +64,9 @@ function readToughnessPair(v: unknown, knownMax?: number): Toughness {
   return makeToughness(knownMax ?? 10, knownMax ?? 10)
 }
 
-export const BUILTIN_ID_PREFIX = 'pc_default_'
+const BUILTIN_ID_PREFIX = 'pc_default_'
 
-export function readCharacter(v: unknown): Character {
+function readCharacter(v: unknown): Character {
   const c = asRecord(v)
   const id = asString(c.id) || uid('pc')
   return {
@@ -78,7 +78,7 @@ export function readCharacter(v: unknown): Character {
     defense: asNumber(c.defense, 10),
     armor: asString(c.armor),
     painThreshold: asNullableNumber(c.painThreshold),
-    attributes: normalizeAttributes(c.attributes as never),
+    attributes: normalizeAttributes(c.attributes),
     note: asString(c.note),
     // v1 never stored this, so recover it from the id prefix -- exactly once,
     // here, rather than on every render.
@@ -88,7 +88,7 @@ export function readCharacter(v: unknown): Character {
 
 export const readCharacters = (v: unknown): Character[] => asArray(v).map(readCharacter)
 
-export function readBestiaryEntry(v: unknown): BestiaryEntry {
+function readBestiaryEntry(v: unknown): BestiaryEntry {
   const e = asRecord(v)
   return {
     id: asString(e.id) || uid('bst'),
@@ -135,7 +135,7 @@ function readCombatant(
     painThreshold: asNullableNumber(m.painThreshold),
     prone: asBool(m.prone),
     flanked: asBool(m.flanked),
-    attributes: normalizeAttributes(m.attributes as never),
+    attributes: normalizeAttributes(m.attributes),
     note: asString(m.note),
   }
   return isPc

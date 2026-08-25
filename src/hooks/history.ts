@@ -46,7 +46,7 @@ function build<T>(past: T[], present: T, future: T[], lastKey: string | null): H
  * fresh object literal, so it never fired once. One encounter is small enough
  * that stringifying it per edit is not worth optimising away.
  */
-export function sameState<T>(a: T, b: T): boolean {
+function sameState<T>(a: T, b: T): boolean {
   if (a === b) return true
   try {
     return JSON.stringify(a) === JSON.stringify(b)
