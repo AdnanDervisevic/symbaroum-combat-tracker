@@ -1,0 +1,33 @@
+#!/bin/sh
+# Run `npm run check` -- types, lint, tests, build -- before letting a commit
+# through. Installed by `scripts/install-hooks.mjs`, which npm runs on install.
+#
+# Skip once with:  git commit --no-verify
+#
+# Note it checks the working tree rather than only what is staged. For a repo
+# with one author that is the honest thing to check anyway; anything cleverer
+# means stashing, and a hook that stashes is a hook that eventually loses work.
+
+set -e
+
+# npm is often absent from the minimal PATH a GUI git client hands a hook, and a
+# hook that blocks every commit because it cannot find its toolchain is worse
+# than no hook. Look in the usual places, then give up loudly rather than fail.
+if ! command -v npm >/dev/null 2>&1; then
+  for dir in "$HOME"/.local/node-*/bin "$HOME/.nvm/versions/node"/*/bin /usr/local/bin /opt/homebrew/bin; do
+    if [ -x "$dir/npm" ]; then
+      PATH="$dir:$PATH"
+      export PATH
+      break
+    fi
+  done
+fi
+
+if ! command -v npm >/dev/null 2>&1; then
+  echo "pre-commit: npm is not on PATH, so 'npm run check' was skipped." >&2
+  echo "            Run it by hand before pushing." >&2
+  exit 0
+fi
+
+echo "pre-commit: npm run check"
+npm run check --silent
