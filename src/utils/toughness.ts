@@ -47,7 +47,6 @@ export function applyDelta(
 
 export const isDown = (t: Toughness) => t.current <= 0
 
-export const formatToughness = (t: Toughness) => `${t.current} / ${t.max}`
 
 /**
  * `null` means this creature never goes prone. `0` means every hit that lands

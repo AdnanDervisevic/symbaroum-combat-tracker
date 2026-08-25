@@ -18,20 +18,25 @@
 
   /* Outside the sheet: the dark, ragged edge a scanned spread sits on. */
   --page: #16120e;
-  /* The sheet itself, then the boxes printed on it. */
+  /* The sheet itself, then the boxes printed on it.
+
+     The box is deliberately NOT parchment. In the books a statblock is a
+     printed panel: desaturated, and lighter than the page it lies on. Two warm
+     tans a few steps from a warm page do not read as a box at all -- they read
+     as the page with faint stripes on it, which is what these were. */
   --parchment: #efe7d5;
   --panel: #e9e0ca;
-  --card: #f6f1e3;
-  /* Every other row of a statblock table, and the stat strips. */
-  --card-alt: #e3d9c0;
+  --card: #faf9f6;
+  /* Every other row of a statblock table, and the derived-stat strip. */
+  --card-alt: #e6e3da;
   --ink: #1d1a15;
-  --muted: #6b6152;
-  --border: #b9ab8e;
+  --muted: #6f6a5e;
+  --border: #c3bdae;
   /* A ring around one cell of a stat strip. With a 1px grid gap the rings of
      two neighbours meet in it and read as a single divider, and a cell the
      fields did not fill is bounded by its neighbours' rings -- so a strip that
      wraps unevenly ends in an empty cell rather than a hole. */
-  --cell-rule: 0 0 0 1px #b9ab8e;
+  --cell-rule: 0 0 0 1px #c3bdae;
   /* The heavy rules that open a section, and the name plate behind them. */
   --rule: #17130f;
   --frame: #17130f;
@@ -41,9 +46,11 @@
   --rubric: #8f3f2c;
   --shadow: rgba(23, 19, 15, 0.22);
   --danger: #8f3f2c;
-  --input-bg: #fbf7ea;
-  --input-readonly: #ebe3d0;
-  --attr-bg: #e3d9c0;
+  --input-bg: #fdfcfa;
+  --input-readonly: #eeece5;
+  /* The attribute strip is the LIGHT band in a printed entry, not the dark
+     one; the derived stats below it are the dark one. */
+  --attr-bg: #faf9f6;
   /* Text printed on the name plate. */
   --on-rule: #f4ecda;
 }
@@ -57,12 +64,12 @@
   --page: #0b0d0a;
   --parchment: #191d18;
   --panel: #1e231d;
-  --card: #232a22;
-  --card-alt: #1a1f19;
+  --card: #272a26;
+  --card-alt: #1e211d;
   --ink: #e6dfcd;
-  --muted: #99907a;
-  --border: #3d4638;
-  --cell-rule: 0 0 0 1px #3d4638;
+  --muted: #9a9484;
+  --border: #4a5045;
+  --cell-rule: 0 0 0 1px #4a5045;
   --rule: #0c0f0b;
   --frame: #4c5646;
   --accent: #0c0f0b;
@@ -70,9 +77,9 @@
   --rubric: #c47a5c;
   --shadow: rgba(0, 0, 0, 0.5);
   --danger: #c47a5c;
-  --input-bg: #141811;
-  --input-readonly: #1b201a;
-  --attr-bg: #1a1f19;
+  --input-bg: #14170f;
+  --input-readonly: #1b1f19;
+  --attr-bg: #272a26;
   --on-rule: #e6dfcd;
 }
 

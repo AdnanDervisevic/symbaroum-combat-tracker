@@ -32,7 +32,7 @@ export function CharacterCard({ character, onUpdate, onDelete, onAttributeChange
       </div>
       <div className="grid stats">
         <label>
-          <span>Initiative</span>
+          <span>Init</span>
           <NumberField
             value={character.initiative}
             min={0}
@@ -41,7 +41,7 @@ export function CharacterCard({ character, onUpdate, onDelete, onAttributeChange
           />
         </label>
         <label>
-          <span>Toughness</span>
+          <span>Tough</span>
           <NumberField
             value={character.toughness}
             min={1}
@@ -52,7 +52,7 @@ export function CharacterCard({ character, onUpdate, onDelete, onAttributeChange
         <label>
           {/* The number on the sheet: what this character rolls under. Monster
               statblocks print a modifier instead, and are converted on load. */}
-          <span title="The number this character rolls under">Defense</span>
+          <span title="The number this character rolls under">Def</span>
           <NumberField
             value={character.defense}
             min={1}
@@ -60,15 +60,15 @@ export function CharacterCard({ character, onUpdate, onDelete, onAttributeChange
             onCommit={(defense) => onUpdate(character.id, { defense })}
           />
         </label>
-        <label>
+        <label className="stat-field--text">
           <span>Armor</span>
           <input
             value={character.armor}
             onChange={(e) => onUpdate(character.id, { armor: e.target.value })}
           />
         </label>
-        <label>
-          <span>Pain Threshold</span>
+        <label className="stat-field--text">
+          <span>Pain Th.</span>
           <OptionalNumberField
             value={character.painThreshold}
             min={0}
@@ -98,11 +98,15 @@ export function CharacterCard({ character, onUpdate, onDelete, onAttributeChange
           ))}
         </div>
       </details>
-      <textarea
-        value={character.note}
-        onChange={(e) => onUpdate(character.id, { note: e.target.value })}
-        placeholder="Notes"
-      />
+      <div className="entry-row alt grows">
+        <div className="entry-label">Notes</div>
+        <textarea
+          className="entry-value"
+          value={character.note}
+          onChange={(e) => onUpdate(character.id, { note: e.target.value })}
+          placeholder="Notes"
+        />
+      </div>
       {!character.isBuiltin && (
         <div className="card-actions">
           <button className="danger ghost" onClick={() => onDelete(character.id)}>

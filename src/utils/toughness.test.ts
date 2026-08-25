@@ -2,7 +2,6 @@ import { describe, expect, it } from 'vitest'
 import {
   applyDelta,
   exceedsPainThreshold,
-  formatToughness,
   isDown,
   makeToughness,
   setCurrent,
@@ -76,10 +75,6 @@ describe('exceedsPainThreshold', () => {
 })
 
 describe('reading it back', () => {
-  it('shows current out of maximum', () => {
-    expect(formatToughness({ current: 6, max: 10 })).toBe('6 / 10')
-  })
-
   it('knows when someone is out of the fight', () => {
     expect(isDown({ current: 0, max: 10 })).toBe(true)
     expect(isDown(setCurrent({ current: 0, max: 10 }, 1))).toBe(false)

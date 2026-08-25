@@ -111,14 +111,39 @@ would be trusted and wrong. The encounter panel shows what each side has and
 leaves the judgement to the GM.
 
 **A combatant card is a statblock.** The layout follows the printed creature
-entries: a black name plate with the type set in italic beneath it, an
-eight-column attribute strip, a second strip for Defense / Armor / Toughness /
-Pain Threshold, then rows banded light and dark, everything squared off and
-flush to the frame. So the card carries no padding of its own -- each row pads
-itself, which is what lets a strip run edge to edge. The dividers inside a strip
-are the grid gap showing the container through rather than per-cell borders,
-so a strip that wraps to a second row on a narrow screen rules itself without
-anything having to know where it wrapped.
+entries: a black name plate with the type in italic beneath it, a light
+attribute strip, a darker strip for the derived stats, then labelled rows --
+a bold label in a fixed left column, a hairline, the value -- banded
+alternately light and dark, everything squared off and flush to the frame. So
+the card carries no padding of its own; each row pads itself, which is what
+lets a strip run edge to edge.
+
+Three details in that are worth stating, because each replaced something that
+looked reasonable and read badly.
+
+**The box is not the page.** In the books a statblock is a printed panel:
+desaturated, and lighter than the parchment it lies on. Banding it in two warm
+tans a few steps from a warm page does not produce a box, it produces the page
+with faint stripes on it.
+
+**There are three type registers, not one.** Roman capitals for the name plate
+and for the strip labels -- and, for the label column, bold sentence-case
+serif, which is how the books set Weapons, Traits and Tactics. Setting every
+label on the card in small tracked capitals is what flattened it.
+
+**Current toughness is the value of a row, not a row.** It used to have a
+full-width band to itself, because nothing else on the card would take it --
+and a band containing only centred text reads as a rule somebody wrote on. It
+is the value of `State` now, beside the two conditions, and carries `Down` in
+the rubric when a combatant is out, which is the one thing it was ever for.
+
+Dividers inside a strip are a `box-shadow` ring per cell over a container the
+same colour as the cells, rather than per-cell borders or a coloured grid gap.
+Two neighbours' rings meet in the gap and read as one line; the rings on the
+outer edge land on the card's border, where the card's overflow clip eats them;
+and a cell the fields did not fill is bounded by its neighbours' rings, so a
+strip that wraps unevenly ends in an empty cell rather than a hole in the
+divider colour.
 
 Two colours do the structural work: `--rule` is a fill (name plates, buttons,
 the active tab) and `--frame` is a line (card borders, the double rule under a
