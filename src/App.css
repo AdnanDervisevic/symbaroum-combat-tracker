@@ -96,14 +96,14 @@ main {
 
 .masthead__title {
   font-size: 17px;
-  font-weight: 600;
+  font-weight: 700;
   letter-spacing: 0.34em;
 }
 
 .masthead__sub {
   font-size: 12px;
-  font-weight: 500;
-  letter-spacing: 0.26em;
+  font-weight: 700;
+  letter-spacing: 0.24em;
 }
 
 /* ---------------------------------------------------------------------------
@@ -230,6 +230,12 @@ main {
    ------------------------------------------------------------------------- */
 
 .card {
+  /* A grid stretches every card in a row to the tallest one. Without somewhere
+     for the slack to go it collects under the last row as a band of bare card
+     colour -- which on a character sheet, where the note is the last row, is a
+     sliver of near-white under a tan field. The note takes it instead. */
+  display: flex;
+  flex-direction: column;
   background: var(--card);
   border: 1px solid var(--frame);
   border-radius: 0;
@@ -372,14 +378,12 @@ main {
    that sits directly under the name in a printed statblock. */
 .attr-row {
   display: grid;
-  grid-template-columns: repeat(8, 1fr);
-  /* The dividers are the grid gap showing the container through, so a strip
-     that wraps to a second row rules itself without anyone having to know
-     where it wrapped. */
+  /* auto-fit rather than a fixed eight: a combatant with four attributes
+     filled in should be four columns, not four columns and four holes. */
+  grid-template-columns: repeat(auto-fit, minmax(38px, 1fr));
   gap: 1px;
   margin: 0;
-  background: var(--border);
-  border-bottom: 1px solid var(--border);
+  background: var(--attr-bg);
 }
 
 .attr-cell {
@@ -387,6 +391,7 @@ main {
   border-radius: 0;
   padding: 3px 0 4px;
   background: var(--attr-bg);
+  box-shadow: var(--cell-rule);
   text-align: center;
 }
 
@@ -423,10 +428,15 @@ main {
 
 /* Six now: current toughness and its maximum are separate fields. */
 .stat-row.single-line {
-  grid-template-columns: repeat(6, minmax(0, 1fr));
+  /* Four numbers, then the two fields that hold words. The zero minimum is
+     load-bearing: a bare 1fr is minmax(auto, 1fr), and an input's auto
+     minimum is its default twenty-character width, which inflates every track
+     to 201px inside a 360px card and pushes the strip out of the card. */
+  grid-template-columns:
+    minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr)
+    minmax(0, 1fr) minmax(0, 1.7fr) minmax(0, 1.3fr);
   gap: 1px;
-  background: var(--border);
-  border-bottom: 1px solid var(--border);
+  background: var(--card-alt);
 }
 
 .stat-field {
@@ -437,6 +447,7 @@ main {
   color: var(--muted);
   border: 0;
   background: var(--card-alt);
+  box-shadow: var(--cell-rule);
   padding: 3px 0 4px;
 }
 
@@ -464,6 +475,13 @@ main {
   font-size: 15px;
   font-weight: 700;
   color: var(--ink);
+}
+
+/* The fields that hold words rather than a number. */
+.stat-field--text input {
+  font-family: 'Crimson Text', Georgia, serif;
+  font-size: 12px;
+  font-weight: 600;
 }
 
 .stat-field input[readonly] {
@@ -567,6 +585,8 @@ label.toggle {
 
 /* The Tactics row: last, tan, and set as running text. */
 .card > textarea {
+  display: block;
+  flex: 1 1 auto;
   width: 100%;
   min-height: 52px;
   margin: 0;
@@ -592,9 +612,9 @@ label.toggle {
   gap: 1px;
   grid-template-columns: repeat(auto-fit, minmax(96px, 1fr));
   margin: 0;
-  background: var(--border);
-  border-bottom: 1px solid var(--border);
+  background: var(--card-alt);
 }
+
 
 .grid.stats label {
   display: flex;
@@ -604,6 +624,7 @@ label.toggle {
   font-size: 12px;
   color: var(--muted);
   background: var(--card-alt);
+  box-shadow: var(--cell-rule);
   padding: 3px 4px 4px;
 }
 
@@ -1132,12 +1153,6 @@ button.danger.ghost {
    Narrow screens.
    ------------------------------------------------------------------------- */
 
-@media (max-width: 720px) {
-  .attr-row {
-    grid-template-columns: repeat(4, 1fr);
-  }
-}
-
 @media (max-width: 640px) {
   .app-shell {
     padding: 20px 16px 60px;
@@ -1222,7 +1237,7 @@ button.danger.ghost {
   margin-top: -8px;
   font-family: var(--display);
   font-size: 10px;
-  font-weight: 600;
+  font-weight: 700;
   letter-spacing: 0.13em;
   text-transform: uppercase;
   color: var(--rubric);

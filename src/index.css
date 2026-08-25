@@ -27,6 +27,11 @@
   --ink: #1d1a15;
   --muted: #6b6152;
   --border: #b9ab8e;
+  /* A ring around one cell of a stat strip. With a 1px grid gap the rings of
+     two neighbours meet in it and read as a single divider, and a cell the
+     fields did not fill is bounded by its neighbours' rings -- so a strip that
+     wraps unevenly ends in an empty cell rather than a hole. */
+  --cell-rule: 0 0 0 1px #b9ab8e;
   /* The heavy rules that open a section, and the name plate behind them. */
   --rule: #17130f;
   --frame: #17130f;
@@ -57,6 +62,7 @@
   --ink: #e6dfcd;
   --muted: #99907a;
   --border: #3d4638;
+  --cell-rule: 0 0 0 1px #3d4638;
   --rule: #0c0f0b;
   --frame: #4c5646;
   --accent: #0c0f0b;

@@ -128,7 +128,7 @@ export function CombatantCard({
               onCommit={(value) => onUpdate(member.id, { field: 'defense', value })}
             />
           </label>
-          <label className="stat-field">
+          <label className="stat-field stat-field--text">
             <span>Armor</span>
             <input
               value={member.armor}
