@@ -30,6 +30,13 @@ npm run dev
 
 Open [http://localhost:5173](http://localhost:5173) in your browser.
 
+`npm install` also points git at the hooks in [`.githooks/`](.githooks), so
+committing runs `npm run check` first — types, lint, tests, build. It checks the
+working tree rather than only what is staged, which for a repo with one author is
+the honest thing to check anyway. Skip it once with `git commit --no-verify`, and
+note that it steps aside with a warning rather than blocking you if `npm` is not
+on the PATH your git client provides.
+
 ### Other Scripts
 
 | Command | Description |
@@ -61,23 +68,31 @@ src/
     exportImport.ts # Save files: version dispatch and IO
     character.ts    # Characters, their attributes, and joining a fight
     core.ts         # uid, clamp
+    draft.ts        # The add-NPC form, and what a monster preset becomes
   hooks/
     history.ts      # Undo/redo as data — push, coalesce, capacity
     storage.ts      # localStorage, with failures that are not swallowed
     usePersistent*  # The React wiring around the two above
+    useStoredSession.ts    # Everything kept between visits, loaded in order
+    useEncounterCommands.ts# The verbs, bound to the encounter they act on
+    useCombatantBuilder.ts # The Manage Combatants dialog
+    useRoster.ts           # Editing characters, and mirroring that into a fight
+    useRowState.ts         # Per-card state: edit mode and the damage box
+    useAlerts.ts           # The three things the app says on its own
   components/       # UI panels, cards, and modals
   data/             # Default characters and monster presets
-  App.tsx           # Wiring: when things happen, not what they do
+  App.tsx           # Composition: which tab is open, and the markup
 ```
 
 ## Design notes
 
 **The interesting parts are pure.** Every decision an encounter can make — adding
 NPCs, removing one, sorting, stepping the turn, applying damage — is a function
-from `EncounterState` to `EncounterState` in `utils/encounter.ts`. `App.tsx`
-decides *when* those run and owns the things that are genuinely about being an
-app: persistence, toasts, which tab is open. That split is why the test suite
-needs a browser for exactly one file.
+from `EncounterState` to `EncounterState` in `utils/encounter.ts`. The hooks
+decide *when* those run and own the things that are genuinely about being an app:
+persistence, toasts, confirmation dialogs. `App.tsx` composes the hooks and
+renders. That split is why the test suite needs a browser for three files out of
+eleven.
 
 **Repairs are reported, never silent.** Anything loaded from disk or from
 localStorage goes through a reader that clamps the turn cursor, floors the round,

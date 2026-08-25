@@ -297,6 +297,18 @@ describe('adding player characters', () => {
   })
 })
 
+describe('the archive label', () => {
+  it('counts each side and gets the plurals right', () => {
+    let state = E.addPlayerCharacters(E.emptyEncounter(), [pc('pc_1')], makeId)
+    state = E.addNpcs(state, draft({ count: 2 }), makeId)
+    expect(E.archiveLabel({ ...state, round: 4 })).toBe('Round 4 — 1 PC, 2 NPCs')
+  })
+
+  it('describes an empty encounter without pretending it had anybody', () => {
+    expect(E.archiveLabel(E.emptyEncounter())).toBe('Round 1 — 0 PCs, 0 NPCs')
+  })
+})
+
 describe('side totals', () => {
   it('counts only the standing, and says how many are not', () => {
     let state = E.addPlayerCharacters(E.emptyEncounter(), [pc('pc_1'), pc('pc_2')], makeId)

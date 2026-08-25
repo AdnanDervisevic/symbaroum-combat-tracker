@@ -328,6 +328,14 @@ export function syncFromRoster(state: EncounterState, characters: Character[]): 
   return changed ? { ...state, members } : state
 }
 
+/** How an archived encounter is described on the shelf it is filed on. */
+export function archiveLabel(state: EncounterState): string {
+  const pcs = state.members.filter((m) => m.source === 'pc').length
+  const npcs = state.members.filter((m) => m.source === 'npc').length
+  const s = (n: number) => (n === 1 ? '' : 's')
+  return `Round ${state.round} — ${pcs} PC${s(pcs)}, ${npcs} NPC${s(npcs)}`
+}
+
 export type SideTotals = { count: number; standing: number; toughness: number }
 
 /**
