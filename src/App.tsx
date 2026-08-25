@@ -84,6 +84,11 @@ function App() {
   return (
     <div className="app-shell">
       <main>
+        <header className="masthead">
+          <span className="masthead__title">Symbaroum</span>
+          <span className="masthead__sub">Combat Tracker</span>
+        </header>
+
         <nav className="tabs">
           {TAB_OPTIONS.map((tab) => (
             <button

@@ -1,43 +1,86 @@
-@import url('https://fonts.googleapis.com/css2?family=Crimson+Text:wght@400;600;700&family=Libre+Baskerville:wght@400;700&display=swap');
+/* Typography borrowed from the books: a Trajan-ish Roman capital for anything
+   set in caps (running heads, statblock names, rubrics) and an old-style
+   Garamond for running text. Crimson Text carries an italic, which the
+   statblocks use for the third line of a name plate. */
+@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600;700&family=Crimson+Text:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Libre+Baskerville:wght@400;700&display=swap');
 
 :root {
-  font-family: 'Crimson Text', 'Libre Baskerville', serif;
-  line-height: 1.5;
+  font-family: 'Crimson Text', 'Libre Baskerville', Georgia, serif;
+  line-height: 1.45;
   font-weight: 400;
-  color: #121212;
-  background-color: #f4f3ef;
+  color: #1d1a15;
+  background-color: #16120e;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
-  --page: #f4f3ef;
-  --panel: #faf9f7;
-  --card: #ffffff;
-  --ink: #121212;
-  --muted: #5a5a5a;
-  --border: #c9c9c9;
-  --accent: #111111;
-  --accent-light: #2a2a2a;
-  --shadow: rgba(0, 0, 0, 0.08);
-  --danger: #b44532;
-  --input-bg: #fffdf4;
-  --input-readonly: #f4f4f4;
-  --attr-bg: #fffdf2;
+
+  --display: 'Cinzel', 'Libre Baskerville', Georgia, serif;
+
+  /* Outside the sheet: the dark, ragged edge a scanned spread sits on. */
+  --page: #16120e;
+  /* The sheet itself, then the boxes printed on it.
+
+     The box is deliberately NOT parchment. In the books a statblock is a
+     printed panel: desaturated, and lighter than the page it lies on. Two warm
+     tans a few steps from a warm page do not read as a box at all -- they read
+     as the page with faint stripes on it, which is what these were. */
+  --parchment: #efe7d5;
+  --panel: #e9e0ca;
+  --card: #faf9f6;
+  /* Every other row of a statblock table, and the derived-stat strip. */
+  --card-alt: #e6e3da;
+  --ink: #1d1a15;
+  --muted: #6f6a5e;
+  --border: #c3bdae;
+  /* A ring around one cell of a stat strip. With a 1px grid gap the rings of
+     two neighbours meet in it and read as a single divider, and a cell the
+     fields did not fill is bounded by its neighbours' rings -- so a strip that
+     wraps unevenly ends in an empty cell rather than a hole. */
+  --cell-rule: 0 0 0 1px #c3bdae;
+  /* The heavy rules that open a section, and the name plate behind them. */
+  --rule: #17130f;
+  --frame: #17130f;
+  --accent: #17130f;
+  --accent-light: #332b22;
+  /* Rubric: the rust the books use for section heads and picture captions. */
+  --rubric: #8f3f2c;
+  --shadow: rgba(23, 19, 15, 0.22);
+  --danger: #8f3f2c;
+  --input-bg: #fdfcfa;
+  --input-readonly: #eeece5;
+  /* The attribute strip is the LIGHT band in a printed entry, not the dark
+     one; the derived stats below it are the dark one. */
+  --attr-bg: #faf9f6;
+  /* Text printed on the name plate. */
+  --on-rule: #f4ecda;
 }
 
+/* The books' other mode: the black pages, where the same rust and the same
+   cream ink sit on bitumen rather than parchment. */
 [data-theme="dark"] {
-  --page: #1a1f1a;
-  --panel: #232923;
-  --card: #2a322a;
-  --ink: #e8e4dc;
-  --muted: #9a9689;
-  --border: #3d4a3d;
-  --accent: #4a5d4a;
-  --accent-light: #5a6f5a;
-  --shadow: rgba(0, 0, 0, 0.3);
-  --danger: #a65d4a;
-  --input-bg: #1f261f;
-  --input-readonly: #252c25;
-  --attr-bg: #252c25;
+  color: #e6dfcd;
+  background-color: #0b0d0a;
+
+  --page: #0b0d0a;
+  --parchment: #191d18;
+  --panel: #1e231d;
+  --card: #272a26;
+  --card-alt: #1e211d;
+  --ink: #e6dfcd;
+  --muted: #9a9484;
+  --border: #4a5045;
+  --cell-rule: 0 0 0 1px #4a5045;
+  --rule: #0c0f0b;
+  --frame: #4c5646;
+  --accent: #0c0f0b;
+  --accent-light: #263025;
+  --rubric: #c47a5c;
+  --shadow: rgba(0, 0, 0, 0.5);
+  --danger: #c47a5c;
+  --input-bg: #14170f;
+  --input-readonly: #1b1f19;
+  --attr-bg: #272a26;
+  --on-rule: #e6dfcd;
 }
 
 * {
@@ -49,14 +92,18 @@ body {
   min-height: 100vh;
   background: var(--page);
   color: var(--ink);
-  background-image: linear-gradient(180deg, rgba(255,255,255,0.65), rgba(255,255,255,0.65)),
-    url('data:image/svg+xml,%3Csvg width="170" height="170" viewBox="0 0 170 170" xmlns="http://www.w3.org/2000/svg"%3E%3Cpath d="M0 169h170" stroke="%23d5d5d5" stroke-width="1"/%3E%3C/svg%3E');
-  background-size: cover, 100% 48px;
 }
 
-[data-theme="dark"] body {
-  background-image: linear-gradient(180deg, rgba(0,0,0,0.2), rgba(0,0,0,0.2)),
-    url('data:image/svg+xml,%3Csvg width="170" height="170" viewBox="0 0 170 170" xmlns="http://www.w3.org/2000/svg"%3E%3Cpath d="M0 169h170" stroke="%232a352a" stroke-width="1"/%3E%3C/svg%3E');
+/* The dark surround the sheet lies on. Coarse, low-contrast noise so it reads
+   as texture rather than as a gradient. */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: -1;
+  opacity: 0.5;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.62' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)' opacity='0.55'/%3E%3C/svg%3E");
 }
 
 #root {
@@ -64,15 +111,21 @@ body {
 }
 
 a {
-  color: inherit;
+  color: var(--rubric);
 }
 
 button,
 input,
-textarea {
+textarea,
+select {
   font: inherit;
 }
 
 textarea {
   resize: vertical;
+}
+
+h1, h2, h3, h4 {
+  font-family: var(--display);
+  font-weight: 600;
 }

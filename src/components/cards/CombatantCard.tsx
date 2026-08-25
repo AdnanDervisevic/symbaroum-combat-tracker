@@ -1,7 +1,7 @@
 import type { Combatant, CharacterAttributes, MemberPatch } from '../../types';
 import { ATTRIBUTE_FIELDS } from '../../utils/character';
 import { NumberField, OptionalNumberField } from '../common/NumberField';
-import { MAX_TOUGHNESS, formatToughness, isDown } from '../../utils/toughness';
+import { MAX_TOUGHNESS, isDown } from '../../utils/toughness';
 
 const hasAttributes = (attrs?: CharacterAttributes | null) =>
   !!attrs && ATTRIBUTE_FIELDS.some(({ key }) => attrs[key] !== null && attrs[key] !== undefined);
@@ -67,76 +67,6 @@ export function CombatantCard({
           </button>
         </div>
       </div>
-      <div className="stat-block">
-        <div className="stat-row single-line">
-          <label className="stat-field">
-            <span>Init</span>
-            <NumberField
-              value={member.initiative}
-              min={0}
-              max={99}
-              readOnly={!isEditing}
-              onCommit={(value) => onUpdate(member.id, { field: 'initiative', value })}
-            />
-          </label>
-          <label className="stat-field">
-            {/* Current out of maximum. The maximum used to not exist at all --
-                one number was doing both jobs, so a wounded combatant had
-                forgotten what it started with. */}
-            <span>Tough</span>
-            <NumberField
-              value={member.toughness.current}
-              min={0}
-              max={member.toughness.max}
-              readOnly={!isEditing}
-              onCommit={(value) => onUpdate(member.id, { field: 'toughnessCurrent', value })}
-            />
-          </label>
-          <label className="stat-field">
-            <span>Max</span>
-            <NumberField
-              value={member.toughness.max}
-              min={1}
-              max={MAX_TOUGHNESS}
-              readOnly={!isEditing}
-              onCommit={(value) => onUpdate(member.id, { field: 'toughnessMax', value })}
-            />
-          </label>
-          <label className="stat-field">
-            <span>Def</span>
-            <NumberField
-              value={member.defense}
-              min={1}
-              max={20}
-              readOnly={!isEditing}
-              onCommit={(value) => onUpdate(member.id, { field: 'defense', value })}
-            />
-          </label>
-          <label className="stat-field">
-            <span>Armor</span>
-            <input
-              value={member.armor}
-              readOnly={!isEditing}
-              aria-readonly={!isEditing}
-              onChange={(e) => onUpdate(member.id, { field: 'armor', value: e.target.value })}
-            />
-          </label>
-          <label className="stat-field">
-            <span>Pain Th.</span>
-            <OptionalNumberField
-              value={member.painThreshold}
-              min={0}
-              max={MAX_TOUGHNESS}
-              placeholder="never"
-              readOnly={!isEditing}
-              onCommit={(value) => onUpdate(member.id, { field: 'painThreshold', value })}
-            />
-          </label>
-        </div>
-        <div className="toughness-readout">
-          {down ? 'Down' : formatToughness(member.toughness)}
-        </div>
-      </div>
       {hasAttributes(member.attributes) && (
         <div className="attr-row">
           {ATTRIBUTE_FIELDS.filter(({ key }) => {
@@ -153,44 +83,133 @@ export function CombatantCard({
           })}
         </div>
       )}
-      <div className="status-row">
-        <label className="toggle">
-          <input
-            type="checkbox"
-            checked={member.prone}
-            onChange={(e) => onUpdate(member.id, { field: 'prone', value: e.target.checked })}
+      <div className="stat-row single-line">
+        <label className="stat-field">
+          <span>Init</span>
+          <NumberField
+            value={member.initiative}
+            min={0}
+            max={99}
+            readOnly={!isEditing}
+            onCommit={(value) => onUpdate(member.id, { field: 'initiative', value })}
           />
-          Prone
         </label>
-        <label className="toggle">
-          <input
-            type="checkbox"
-            checked={member.flanked}
-            onChange={(e) => onUpdate(member.id, { field: 'flanked', value: e.target.checked })}
+        <label className="stat-field">
+          {/* Current out of maximum. The maximum used to not exist at all --
+              one number was doing both jobs, so a wounded combatant had
+              forgotten what it started with. */}
+          <span>Tough</span>
+          <NumberField
+            value={member.toughness.current}
+            min={0}
+            max={member.toughness.max}
+            readOnly={!isEditing}
+            onCommit={(value) => onUpdate(member.id, { field: 'toughnessCurrent', value })}
           />
-          Flanked
+        </label>
+        <label className="stat-field">
+          <span>Max</span>
+          <NumberField
+            value={member.toughness.max}
+            min={1}
+            max={MAX_TOUGHNESS}
+            readOnly={!isEditing}
+            onCommit={(value) => onUpdate(member.id, { field: 'toughnessMax', value })}
+          />
+        </label>
+        <label className="stat-field">
+          <span>Def</span>
+          <NumberField
+            value={member.defense}
+            min={1}
+            max={20}
+            readOnly={!isEditing}
+            onCommit={(value) => onUpdate(member.id, { field: 'defense', value })}
+          />
+        </label>
+        <label className="stat-field stat-field--text">
+          <span>Armor</span>
+          <input
+            value={member.armor}
+            readOnly={!isEditing}
+            aria-readonly={!isEditing}
+            onChange={(e) => onUpdate(member.id, { field: 'armor', value: e.target.value })}
+          />
+        </label>
+        <label className="stat-field stat-field--text">
+          <span>Pain Th.</span>
+          <OptionalNumberField
+            value={member.painThreshold}
+            min={0}
+            max={MAX_TOUGHNESS}
+            placeholder="never"
+            readOnly={!isEditing}
+            onCommit={(value) => onUpdate(member.id, { field: 'painThreshold', value })}
+          />
         </label>
       </div>
-      <div className="adjust-row inline">
-        <label className="amount-inline">
-          <span>Amount</span>
-          <NumberField
-            value={adjustValue}
-            min={0}
-            max={999}
-            onCommit={(value) => onAdjustInput(member.id, value)}
-          />
-        </label>
-        <div className="adjust-buttons">
-          <button onClick={() => onApplyAdjustment(member.id, "heal")}>Heal</button>
-          <button onClick={() => onApplyAdjustment(member.id, "hurt")}>Hurt</button>
+      {/* Below the strips a printed entry is a label column and a value column
+          -- Weapons, Abilities, Traits, Tactics. Current toughness lives here
+          rather than on a rule of its own, which is what it had before only
+          because nothing else on the card would take it. */}
+      <div className="entry-row">
+        <div className="entry-label">State</div>
+        <div className="entry-value status-row">
+          <span className="toughness-readout">
+            {down ? (
+              'Down'
+            ) : (
+              <>
+                {member.toughness.current}
+                <span className="of-max"> / {member.toughness.max}</span>
+              </>
+            )}
+          </span>
+          <label className="toggle">
+            <input
+              type="checkbox"
+              checked={member.prone}
+              onChange={(e) => onUpdate(member.id, { field: 'prone', value: e.target.checked })}
+            />
+            Prone
+          </label>
+          <label className="toggle">
+            <input
+              type="checkbox"
+              checked={member.flanked}
+              onChange={(e) => onUpdate(member.id, { field: 'flanked', value: e.target.checked })}
+            />
+            Flanked
+          </label>
         </div>
       </div>
-      <textarea
-        value={member.note || ""}
-        onChange={(e) => onUpdate(member.id, { field: 'note', value: e.target.value })}
-        placeholder="Notes / conditions"
-      />
+      <div className="entry-row alt">
+        <div className="entry-label">Damage</div>
+        <div className="entry-value adjust-row inline">
+          <label className="amount-inline">
+            <span>Amount</span>
+            <NumberField
+              value={adjustValue}
+              min={0}
+              max={999}
+              onCommit={(value) => onAdjustInput(member.id, value)}
+            />
+          </label>
+          <div className="adjust-buttons">
+            <button onClick={() => onApplyAdjustment(member.id, "heal")}>Heal</button>
+            <button onClick={() => onApplyAdjustment(member.id, "hurt")}>Hurt</button>
+          </div>
+        </div>
+      </div>
+      <div className="entry-row grows">
+        <div className="entry-label">Notes</div>
+        <textarea
+          className="entry-value"
+          value={member.note || ""}
+          onChange={(e) => onUpdate(member.id, { field: 'note', value: e.target.value })}
+          placeholder="Conditions, effects"
+        />
+      </div>
       <div className="card-actions">
         <button className="ghost" onClick={() => onToggleEditing(member.id)}>
           {isEditing ? "Done" : "Edit"}
