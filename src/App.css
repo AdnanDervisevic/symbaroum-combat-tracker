@@ -374,15 +374,10 @@ input {
 }
 
 /* Tighter numeric inputs without browser spinners */
-input[type='number']::-webkit-outer-spin-button,
-input[type='number']::-webkit-inner-spin-button {
-  -webkit-appearance: none;
-  margin: 0;
-}
-input[type='number'] {
-  -moz-appearance: textfield;
-  appearance: textfield;
-}
+/* The spinner-hiding rules that used to live here are gone with the last
+   `type="number"` input: numeric fields are `type="text"` with
+   `inputMode="numeric"`, which has no spinners to hide and does not change its
+   value when the page is scrolled under the cursor. See NumberField. */
 
 input[readonly] {
   background: var(--input-readonly);
