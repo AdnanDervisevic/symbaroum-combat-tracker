@@ -18,7 +18,7 @@ A browser-based initiative and combat tracker built for [Symbaroum](https://fria
 - **Encounter Summary** — What each side actually brings: how many combatants, how many still standing, and their combined toughness. There is deliberately no difficulty rating; see [Design notes](#design-notes).
 - **Round Recap** — Toast notification on round transition showing how many combatants are still standing.
 - **Export / Import** — Save your entire session (characters, encounter, bestiary) to a JSON file and reload it later. Files are read by version; anything out of range is repaired on the way in and the repairs are reported rather than applied silently.
-- **Dark / Light Theme** — Toggle between themes; preference is saved in localStorage.
+- **Dark / Light Theme** — Parchment or the black pages, in the manner of the books; preference is saved in localStorage.
 - **Persistent State** — All data (characters, encounter, bestiary, theme) survives page refreshes via versioned localStorage keys.
 
 ## Getting Started
@@ -109,6 +109,22 @@ records no weapons, abilities, traits or mystical powers, which is most of what
 decides a Symbaroum fight. A number computed from toughness and defense alone
 would be trusted and wrong. The encounter panel shows what each side has and
 leaves the judgement to the GM.
+
+**A combatant card is a statblock.** The layout follows the printed creature
+entries: a black name plate with the type set in italic beneath it, an
+eight-column attribute strip, a second strip for Defense / Armor / Toughness /
+Pain Threshold, then rows banded light and dark, everything squared off and
+flush to the frame. So the card carries no padding of its own -- each row pads
+itself, which is what lets a strip run edge to edge. The dividers inside a strip
+are the grid gap showing the container through rather than per-cell borders,
+so a strip that wraps to a second row on a narrow screen rules itself without
+anything having to know where it wrapped.
+
+Two colours do the structural work: `--rule` is a fill (name plates, buttons,
+the active tab) and `--frame` is a line (card borders, the double rule under a
+heading). On parchment they are the same near-black. On the black pages the fill
+stays black and the frame lifts to a visible hairline, because a rule drawn in
+the same ink as the page it sits on is not a rule.
 
 **Numeric fields are `type="text"` with `inputMode="numeric"`.** A focused
 `type="number"` changes its value when the page is scrolled under the cursor,

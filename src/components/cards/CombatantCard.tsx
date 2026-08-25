@@ -67,6 +67,22 @@ export function CombatantCard({
           </button>
         </div>
       </div>
+      {hasAttributes(member.attributes) && (
+        <div className="attr-row">
+          {ATTRIBUTE_FIELDS.filter(({ key }) => {
+            const v = member.attributes?.[key];
+            return typeof v === 'number' && Number.isFinite(v);
+          }).map(({ key, label }) => {
+            const v = member.attributes?.[key] as number;
+            return (
+              <div key={key} className="attr-cell" data-attr={key}>
+                <span>{label}</span>
+                <strong>{attrModifier(v)}</strong>
+              </div>
+            );
+          })}
+        </div>
+      )}
       <div className="stat-block">
         <div className="stat-row single-line">
           <label className="stat-field">
@@ -137,22 +153,6 @@ export function CombatantCard({
           {down ? 'Down' : formatToughness(member.toughness)}
         </div>
       </div>
-      {hasAttributes(member.attributes) && (
-        <div className="attr-row">
-          {ATTRIBUTE_FIELDS.filter(({ key }) => {
-            const v = member.attributes?.[key];
-            return typeof v === 'number' && Number.isFinite(v);
-          }).map(({ key, label }) => {
-            const v = member.attributes?.[key] as number;
-            return (
-              <div key={key} className="attr-cell" data-attr={key}>
-                <span>{label}</span>
-                <strong>{attrModifier(v)}</strong>
-              </div>
-            );
-          })}
-        </div>
-      )}
       <div className="status-row">
         <label className="toggle">
           <input

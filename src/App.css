@@ -1,84 +1,215 @@
+/* ---------------------------------------------------------------------------
+   The sheet.
+
+   The books are a parchment spread lying on a dark, ragged edge, so the shell
+   is the page and the body behind it is the edge. Everything printed on it --
+   panels, cards, strips -- is squared off: the source material has no rounded
+   corners anywhere.
+   ------------------------------------------------------------------------- */
+
 .app-shell {
   max-width: 1180px;
   margin: 0 auto;
-  padding: 28px 18px 72px;
+  min-height: 100vh;
+  padding: 26px 30px 72px;
+  position: relative;
+  color: var(--ink);
+  background-color: var(--parchment);
+  background-image:
+    radial-gradient(ellipse 90% 70% at 50% 34%,
+      rgba(255, 253, 246, 0.5) 0%,
+      rgba(154, 128, 84, 0.1) 62%,
+      rgba(76, 57, 32, 0.26) 100%),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='260' height='260'%3E%3Cfilter id='p'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='5' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='260' height='260' filter='url(%23p)' opacity='0.28'/%3E%3C/svg%3E");
+  box-shadow: 0 0 44px rgba(0, 0, 0, 0.55);
+}
+
+/* The dark gutter down each edge of a scanned page. */
+.app-shell::before,
+.app-shell::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 10px;
+  pointer-events: none;
+}
+
+.app-shell::before {
+  left: 0;
+  background: linear-gradient(90deg, rgba(24, 18, 11, 0.42), rgba(24, 18, 11, 0));
+}
+
+.app-shell::after {
+  right: 0;
+  background: linear-gradient(270deg, rgba(24, 18, 11, 0.42), rgba(24, 18, 11, 0));
+}
+
+[data-theme="dark"] .app-shell {
+  background-image:
+    radial-gradient(ellipse 90% 70% at 50% 34%,
+      rgba(120, 138, 112, 0.09) 0%,
+      rgba(0, 0, 0, 0.22) 62%,
+      rgba(0, 0, 0, 0.5) 100%),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='260' height='260'%3E%3Cfilter id='p'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='5' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='260' height='260' filter='url(%23p)' opacity='0.35'/%3E%3C/svg%3E");
 }
 
 main {
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 22px;
 }
+
+/* ---------------------------------------------------------------------------
+   Running head -- the wide rust capitals and the thick-then-thin rule that
+   opens every page of the books.
+   ------------------------------------------------------------------------- */
+
+.masthead {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+  position: relative;
+  padding-bottom: 9px;
+  margin-bottom: 20px;
+  border-bottom: 3px solid var(--frame);
+}
+
+.masthead::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -6px;
+  height: 1px;
+  background: var(--frame);
+}
+
+.masthead__title,
+.masthead__sub {
+  font-family: var(--display);
+  text-transform: uppercase;
+  color: var(--rubric);
+  line-height: 1;
+}
+
+.masthead__title {
+  font-size: 17px;
+  font-weight: 600;
+  letter-spacing: 0.34em;
+}
+
+.masthead__sub {
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.26em;
+}
+
+/* ---------------------------------------------------------------------------
+   Tabs and the theme switch.
+   ------------------------------------------------------------------------- */
 
 .tabs {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: 6px;
   align-items: center;
-}
-
-.theme-toggle {
-  margin-left: auto;
-  width: 36px;
-  height: 36px;
-  padding: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 18px;
-  background: var(--accent);
-  color: #ffffff;
-  border: 1px solid var(--border);
-  border-radius: 4px;
-  cursor: pointer;
-  transition: background 0.15s ease;
-}
-
-.theme-toggle:hover {
-  background: var(--accent-light);
 }
 
 .tab {
-  border-radius: 4px;
-  border: 1px solid var(--border);
-  background: var(--card);
+  border-radius: 0;
+  border: 1px solid var(--frame);
+  background: transparent;
   color: var(--ink);
-  padding: 6px 12px;
+  padding: 6px 16px;
+  font-family: var(--display);
+  font-size: 12px;
   font-weight: 600;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.18em;
   text-transform: uppercase;
   cursor: pointer;
 }
 
 .tab.active {
-  border-color: var(--accent);
-  color: #ffffff;
-  background: var(--accent);
+  border-color: var(--frame);
+  color: var(--on-rule);
+  background: var(--rule);
 }
 
+.theme-toggle {
+  margin-left: auto;
+  width: 34px;
+  height: 32px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  background: transparent;
+  color: var(--ink);
+  border: 1px solid var(--frame);
+  border-radius: 0;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.theme-toggle:hover {
+  background: var(--rule);
+  color: var(--on-rule);
+}
+
+/* ---------------------------------------------------------------------------
+   Panels -- a section of the chapter: rubric heading over a double rule.
+   ------------------------------------------------------------------------- */
+
 .panel {
-  background: var(--panel);
-  border: 1px solid var(--border);
-  border-radius: 4px;
-  padding: 14px;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  padding: 0;
+}
+
+.panel h2 {
+  margin: 0;
+  font-family: var(--display);
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--rubric);
 }
 
 .panel-header {
   display: flex;
-  align-items: center;
+  align-items: flex-end;
   justify-content: space-between;
   gap: 12px;
+  position: relative;
+  padding-bottom: 8px;
+  margin-bottom: 18px;
+  border-bottom: 3px solid var(--frame);
+}
+
+.panel-header::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -6px;
+  height: 1px;
+  background: var(--frame);
 }
 
 .panel-actions {
   display: flex;
-  gap: 8px;
+  gap: 6px;
   flex-wrap: wrap;
 }
 
 .cards {
   display: grid;
-  gap: 16px;
+  gap: 20px;
 }
 
 .cards.two-col {
@@ -86,107 +217,439 @@ main {
 }
 
 .cards.encounter-grid {
-  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(268px, 1fr));
 }
+
+/* ---------------------------------------------------------------------------
+   The statblock.
+
+   A card is one of the boxed creature entries: a black name plate, strips of
+   stats under it, then labelled rows banded light and dark. Nothing inside is
+   inset from the frame, so every row is padded individually and the card
+   itself has none.
+   ------------------------------------------------------------------------- */
 
 .card {
   background: var(--card);
-  border: 2px solid transparent;
-  border-radius: 4px;
-  padding: 10px;
+  border: 1px solid var(--frame);
+  border-radius: 0;
+  padding: 0;
+  overflow: hidden;
+  box-shadow: 0 1px 3px var(--shadow);
 }
 
 .card:not(.active) {
-  border-color: var(--border);
+  border-color: var(--frame);
 }
 
 .card.active {
-  border-color: var(--accent);
-  box-shadow: 0 0 12px rgba(74, 93, 74, 0.4);
+  border-color: var(--rubric);
+  box-shadow: 0 0 0 1px var(--rubric), 0 0 16px rgba(143, 63, 44, 0.34);
 }
 
 [data-theme="dark"] .card.active {
-  box-shadow: 0 0 16px rgba(90, 111, 90, 0.5);
+  box-shadow: 0 0 0 1px var(--rubric), 0 0 18px rgba(196, 122, 92, 0.34);
 }
 
+/* The name plate. Black bar, cream capitals, the type below it in italic --
+   the second and third lines of a printed creature entry. */
 .card-line {
   display: flex;
   gap: 10px;
   align-items: center;
-  margin-bottom: 10px;
+  margin: 0;
 }
 
 .card-line .name {
   flex: 1;
 }
 
+.compact-header,
 .card-line.dual {
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
-.card-line.dual input {
-  flex: 1 1 160px;
-  min-width: 0;
+  background: var(--rule);
+  padding: 7px 8px;
+  gap: 6px;
 }
 
 .compact-header {
-  display: flex;
   align-items: center;
-  gap: 8px;
 }
 
-.name-wrapper {
+.card-line.dual {
+  flex-direction: column;
+  align-items: stretch;
+  flex-wrap: nowrap;
+}
+
+.compact-header input,
+.card-line.dual input {
+  background: transparent;
+  border: 0;
+  color: var(--on-rule);
+  text-align: center;
+  padding: 1px 2px;
+  width: 100%;
+  min-width: 0;
+  font-family: var(--display);
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.compact-header input[readonly],
+.card-line.dual input[readonly] {
+  background: transparent;
+  color: var(--on-rule);
+}
+
+.compact-header input:focus,
+.card-line.dual input:focus {
+  outline: 1px solid rgba(244, 236, 218, 0.55);
+}
+
+.compact-header input::placeholder,
+.card-line.dual input::placeholder {
+  color: rgba(244, 236, 218, 0.45);
+}
+
+/* Third line of the plate: a character's role, or a combatant's type. */
+.card-line.dual .role {
+  font-family: 'Crimson Text', Georgia, serif;
+  font-size: 13px;
+  font-weight: 400;
+  font-style: italic;
+  letter-spacing: 0.04em;
+  text-transform: none;
+  color: rgba(244, 236, 218, 0.86);
+}
+
+.monster-type-badge {
+  display: block;
+  font-family: 'Crimson Text', Georgia, serif;
+  font-size: 12px;
+  font-style: italic;
+  color: rgba(244, 236, 218, 0.8);
+  letter-spacing: 0.04em;
+  text-transform: none;
+  text-align: center;
+  padding: 0;
+  line-height: 1.25;
+}
+
+.compact-header .name-wrapper {
   flex: 1;
   min-width: 0;
 }
 
+/* Arrows on the plate, drawn as marks rather than buttons. */
 .order-buttons {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 2px;
   flex-shrink: 0;
 }
 
 .order-buttons .icon {
-  width: 24px;
-  height: 24px;
+  width: 20px;
+  height: 16px;
   padding: 0;
   line-height: 1;
+  font-size: 11px;
+  background: transparent;
+  border: 1px solid rgba(244, 236, 218, 0.32);
+  color: var(--on-rule);
+}
+
+.order-buttons .icon:hover:not(:disabled) {
+  background: rgba(244, 236, 218, 0.16);
+  opacity: 1;
+}
+
+/* --- the stat strips ---------------------------------------------------- */
+
+/* Eight attributes across, hairlines between, no box around each: the strip
+   that sits directly under the name in a printed statblock. */
+.attr-row {
+  display: grid;
+  grid-template-columns: repeat(8, 1fr);
+  /* The dividers are the grid gap showing the container through, so a strip
+     that wraps to a second row rules itself without anyone having to know
+     where it wrapped. */
+  gap: 1px;
+  margin: 0;
+  background: var(--border);
+  border-bottom: 1px solid var(--border);
+}
+
+.attr-cell {
+  border: 0;
+  border-radius: 0;
+  padding: 3px 0 4px;
+  background: var(--attr-bg);
+  text-align: center;
+}
+
+.attr-cell span {
+  display: block;
+  background: transparent;
+  color: var(--muted);
+  font-family: var(--display);
+  font-size: 9px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.09em;
+  padding: 0;
+}
+
+.attr-cell strong {
+  display: block;
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1.15;
+  color: var(--ink);
+  padding: 1px 0 0;
+}
+
+.stat-block {
+  margin: 0;
+}
+
+.stat-row {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+}
+
+/* Six now: current toughness and its maximum are separate fields. */
+.stat-row.single-line {
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 1px;
+  background: var(--border);
+  border-bottom: 1px solid var(--border);
+}
+
+.stat-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  font-size: 10px;
+  color: var(--muted);
+  border: 0;
+  background: var(--card-alt);
+  padding: 3px 0 4px;
+}
+
+.stat-field span {
+  display: block;
+  background: transparent;
+  color: var(--muted);
+  font-family: var(--display);
+  text-transform: uppercase;
+  letter-spacing: 0.09em;
+  font-size: 9px;
+  font-weight: 600;
+  line-height: 1.2;
+  text-align: center;
+  padding: 0;
+}
+
+.stat-field input {
+  border: 0;
+  padding: 0 2px;
+  min-width: 0;
+  height: 20px;
+  text-align: center;
+  background: transparent;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.stat-field input[readonly] {
+  border: 0;
+  background: transparent;
+  color: var(--ink);
+}
+
+.stat-field input:focus {
+  outline: 1px solid var(--rubric);
+  outline-offset: -1px;
+}
+
+/* Current out of maximum, said once in full under the boxes. */
+.toughness-readout {
+  margin: 0;
+  padding: 3px 0;
+  text-align: center;
+  font-family: var(--display);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--muted);
+  border-bottom: 1px solid var(--border);
+}
+
+.encounter-card.downed .toughness-readout {
+  color: var(--danger);
+  font-weight: 700;
+}
+
+.encounter-card.downed {
+  opacity: 0.72;
+}
+
+/* --- the labelled rows -------------------------------------------------- */
+
+/* Weapons / Abilities / Traits in the source; here, conditions and the damage
+   controls. Banded, hairline-separated, flush to the frame. */
+.status-row {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin: 0;
+  padding: 6px 10px;
+  background: var(--card);
+  border-bottom: 1px solid var(--border);
+}
+
+label.toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--display);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.adjust-row {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  margin: 0;
+}
+
+.adjust-row.inline {
+  justify-content: flex-start;
+  gap: 10px;
+  padding: 6px 10px;
+  background: var(--card-alt);
+  border-bottom: 1px solid var(--border);
+}
+
+.amount-inline {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--display);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.amount-inline input {
+  width: 48px;
+  text-align: center;
+  padding: 2px 4px;
+  font-weight: 700;
+}
+
+.adjust-buttons {
+  display: flex;
+  gap: 6px;
+  margin-left: auto;
+}
+
+/* The Tactics row: last, tan, and set as running text. */
+.card > textarea {
+  width: 100%;
+  min-height: 52px;
+  margin: 0;
+  padding: 7px 10px;
+  border: 0;
+  border-bottom: 1px solid var(--border);
+  background: var(--card-alt);
+  font-size: 14px;
 }
 
 .card-actions {
   display: flex;
-  gap: 10px;
+  gap: 8px;
   justify-content: flex-end;
+  padding: 6px 10px;
+  background: var(--card);
 }
+
+/* --- character sheets --------------------------------------------------- */
 
 .grid.stats {
   display: grid;
-  gap: 8px;
-  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-  margin-bottom: 10px;
+  gap: 1px;
+  grid-template-columns: repeat(auto-fit, minmax(96px, 1fr));
+  margin: 0;
+  background: var(--border);
+  border-bottom: 1px solid var(--border);
 }
 
 .grid.stats label {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 0;
+  align-items: center;
   font-size: 12px;
+  color: var(--muted);
+  background: var(--card-alt);
+  padding: 3px 4px 4px;
+}
+
+.grid.stats label > span {
+  font-family: var(--display);
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  text-align: center;
   color: var(--muted);
 }
 
+.grid.stats label input {
+  border: 0;
+  background: transparent;
+  text-align: center;
+  width: 100%;
+  padding: 0 2px;
+  height: 22px;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.grid.stats label input:focus {
+  outline: 1px solid var(--rubric);
+  outline-offset: -1px;
+}
+
 .attributes-editor {
-  margin-bottom: 10px;
-  border: 1px solid var(--border);
+  margin: 0;
+  border: 0;
+  border-bottom: 1px solid var(--border);
   border-radius: 0;
-  padding: 8px 12px 12px;
+  padding: 6px 10px 8px;
   background: var(--attr-bg);
 }
 
 .attributes-editor summary {
   cursor: pointer;
+  font-family: var(--display);
+  font-size: 10px;
   font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
   color: var(--muted);
 }
 
@@ -196,7 +659,7 @@ main {
 
 .attributes-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(82px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(76px, 1fr));
   gap: 6px;
 }
 
@@ -204,180 +667,48 @@ main {
   display: flex;
   flex-direction: column;
   gap: 2px;
-  font-size: 11px;
+  align-items: center;
+  font-family: var(--display);
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
   color: var(--muted);
 }
 
-.stat-block {
-  margin-bottom: 8px;
-}
-
-.stat-row {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 6px;
-}
-
-.stat-row.single-line {
-  /* Six now: current toughness and its maximum are separate fields. */
-  grid-template-columns: repeat(6, minmax(0, 1fr));
-  gap: 4px;
-}
-
-/* Current out of maximum, said once in full under the boxes. */
-.toughness-readout {
-  margin-top: 6px;
+.attributes-grid label input {
   text-align: center;
-  font-size: 12px;
-  letter-spacing: 0.06em;
-  color: var(--muted);
-}
-
-.encounter-card.downed .toughness-readout {
-  color: var(--danger, #b3261e);
+  padding: 2px 4px;
+  font-size: 14px;
   font-weight: 700;
+  width: 100%;
 }
 
-.encounter-card.downed {
-  opacity: 0.72;
-}
-
-.stat-field {
-  display: flex;
-  flex-direction: column;
-  gap: 0;
-  font-size: 10px;
-  color: var(--muted);
-  border: 1px solid var(--accent);
-  background: var(--card);
-}
-
-.stat-field span {
-  display: block;
-  background: var(--accent);
-  color: #ffffff;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  font-size: 9px;
-  line-height: 1.2;
-  text-align: center;
-  padding: 2px 0;
-}
-
-.stat-field input {
-  border: 0;
-  padding: 2px 4px;
-  min-width: 0;
-  height: 24px;
-  text-align: center;
-  background: var(--card);
-}
-
-.stat-field input[readonly] {
-  border: 0;
-  background: var(--input-readonly);
-  color: var(--ink);
-}
-
-.status-row {
-  display: flex;
-  gap: 12px;
-  flex-wrap: wrap;
-  margin-bottom: 10px;
-}
-
-.attr-row {
-  display: grid;
-  grid-template-columns: repeat(8, 1fr);
-  gap: 4px;
-  margin: 4px 0 6px;
-}
-
-@media (max-width: 720px) {
-  .attr-row {
-    grid-template-columns: repeat(4, 1fr);
-  }
-}
-
-.attr-cell {
-  border: 1px solid var(--accent);
-  border-radius: 0;
-  padding: 0;
-  background: var(--card);
-  text-align: center;
-}
-
-.attr-cell span {
-  display: block;
-  background: var(--accent);
-  color: #ffffff;
-  font-size: 9px;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  padding: 2px 0;
-}
-
-.attr-cell strong {
-  display: block;
-  font-size: 12px;
-  line-height: 1.1;
-  color: var(--ink);
-  padding: 4px 0 3px;
-}
-
-label.toggle {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 13px;
-}
-
-.adjust-row {
-  display: flex;
-  gap: 10px;
-  align-items: center;
-  margin-bottom: 8px;
-}
-
-.adjust-row.inline {
-  justify-content: flex-start;
-  gap: 10px;
-}
-
-.amount-inline {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 11px;
-  color: var(--muted);
-}
-
-.amount-inline input {
-  width: 56px;
-  text-align: center;
-  padding: 2px 4px;
-}
-
-.adjust-buttons {
-  display: flex;
-  gap: 6px;
-}
+/* ---------------------------------------------------------------------------
+   Controls.
+   ------------------------------------------------------------------------- */
 
 textarea,
-input {
+input,
+select {
   border-radius: 0;
   border: 1px solid var(--border);
   background: var(--input-bg);
   color: var(--ink);
-  padding: 6px 8px;
+  padding: 5px 8px;
   font: inherit;
 }
 
-/* Tighter numeric inputs without browser spinners */
-/* The spinner-hiding rules that used to live here are gone with the last
-   `type="number"` input: numeric fields are `type="text"` with
-   `inputMode="numeric"`, which has no spinners to hide and does not change its
-   value when the page is scrolled under the cursor. See NumberField. */
+textarea:focus,
+input:focus,
+select:focus {
+  outline: 1px solid var(--rubric);
+  outline-offset: -1px;
+}
+
+/* Numeric fields are `type="text"` with `inputMode="numeric"`, which has no
+   spinners to hide and does not change its value when the page is scrolled
+   under the cursor. See NumberField. */
 
 input[readonly] {
   background: var(--input-readonly);
@@ -396,55 +727,60 @@ button,
 .panel-header button,
 .panel-actions button {
   border-radius: 0;
-  border: 1px solid var(--border);
-  padding: 6px 8px;
-  font: inherit;
-  background: var(--accent);
-  color: #ffffff;
+  border: 1px solid var(--frame);
+  padding: 5px 12px;
+  font-family: var(--display);
+  background: var(--rule);
+  color: var(--on-rule);
   cursor: pointer;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.14em;
   text-transform: uppercase;
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 600;
   transition: opacity 0.15s ease;
 }
 
 button:hover:not(:disabled) {
-  opacity: 0.92;
+  opacity: 0.86;
 }
 
 button:disabled {
-  opacity: 0.55;
+  opacity: 0.4;
   cursor: not-allowed;
 }
 
-button.danger {
-  border-color: rgba(180, 69, 50, 0.6);
-  background: rgba(180, 69, 50, 0.16);
-  color: #8f2c1c;
-}
-
+button.danger,
 [data-theme="dark"] button.danger {
-  border-color: rgba(166, 93, 74, 0.6);
-  background: rgba(166, 93, 74, 0.25);
-  color: #d4a090;
+  border-color: var(--rubric);
+  background: transparent;
+  color: var(--rubric);
 }
 
 button.ghost {
   background: transparent;
   color: var(--ink);
+  border-color: var(--border);
 }
+
+button.danger.ghost {
+  color: var(--rubric);
+  border-color: var(--rubric);
+}
+
+/* ---------------------------------------------------------------------------
+   The Manage Combatants dialog.
+   ------------------------------------------------------------------------- */
 
 .pc-picker {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 10px;
+  gap: 8px;
 }
 
 .pc-option {
   border: 1px solid var(--border);
-  border-radius: 4px;
-  padding: 10px;
+  border-radius: 0;
+  padding: 8px 10px;
   background: var(--card);
   display: flex;
   gap: 10px;
@@ -470,10 +806,14 @@ button.ghost {
 }
 
 .inline-form.labeled label {
-  font-size: 12px;
+  font-family: var(--display);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
   color: var(--muted);
   display: grid;
-  gap: 4px;
+  gap: 3px;
 }
 
 .inline-form.labeled input,
@@ -481,6 +821,11 @@ button.ghost {
 .inline-form.labeled select {
   width: 100%;
   min-width: 0;
+  font-family: 'Crimson Text', Georgia, serif;
+  font-size: 14px;
+  letter-spacing: normal;
+  text-transform: none;
+  color: var(--ink);
 }
 
 .inline-form.labeled .wide {
@@ -494,26 +839,26 @@ button.ghost {
   align-items: center;
   justify-content: center;
   padding: 20px;
-  background: rgba(0, 0, 0, 0.4);
+  background: rgba(12, 9, 6, 0.62);
   z-index: 9000;
 }
 
 .modal {
-  background: var(--panel);
-  border: 1px solid var(--accent);
-  border-radius: 4px;
+  background: var(--parchment);
+  border: 1px solid var(--frame);
+  border-radius: 0;
   padding: 18px;
-  box-shadow: 0 10px 24px rgba(21, 12, 8, 0.35);
+  box-shadow: 0 14px 40px rgba(0, 0, 0, 0.55);
   max-width: 760px;
   width: 100%;
 }
 
 .modal-header {
-  border-bottom: 1px solid var(--border);
+  border-bottom: 0;
   margin: -18px -18px 16px;
-  padding: 12px 18px;
-  background: var(--accent);
-  color: #ffffff;
+  padding: 10px 18px;
+  background: var(--rule);
+  color: var(--on-rule);
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -521,37 +866,50 @@ button.ghost {
 
 .modal-header h3 {
   margin: 0;
-  letter-spacing: 0.1em;
+  font-family: var(--display);
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.22em;
   text-transform: uppercase;
+}
+
+.modal-header .icon {
+  background: transparent;
+  border: 1px solid rgba(244, 236, 218, 0.35);
+  color: var(--on-rule);
+  padding: 2px 8px;
 }
 
 .modal-body {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 18px;
   max-height: calc(100vh - 120px);
   overflow-y: auto;
 }
 
 .modal-section {
-  background: var(--card);
-  border: 1px solid var(--border);
-  border-radius: 4px;
-  padding: 12px 14px;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  padding: 0;
 }
 
 .modal-section h4 {
-  margin: 0 0 8px;
-  font-family: 'Libre Baskerville', serif;
-  font-size: 13px;
-  letter-spacing: 0.12em;
+  margin: 0 0 10px;
+  padding-bottom: 5px;
+  border-bottom: 1px solid var(--frame);
+  font-family: var(--display);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.2em;
   text-transform: uppercase;
-  color: var(--accent);
+  color: var(--rubric);
 }
 
 .modal-actions {
   display: flex;
-  gap: 10px;
+  gap: 8px;
   flex-wrap: wrap;
   margin-top: 10px;
 }
@@ -564,6 +922,138 @@ button.ghost {
   font-size: 13px;
 }
 
+/* ---------------------------------------------------------------------------
+   Lists inside the dialog, and the readouts above the initiative order.
+   ------------------------------------------------------------------------- */
+
+.stats-header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: -4px;
+}
+
+.stats-title h3 {
+  margin: 0;
+  font-family: var(--display);
+  font-size: 15px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--rubric);
+}
+
+.stats-title p {
+  margin: 2px 0 0;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.stats-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.legend-pill {
+  border: 1px solid var(--border);
+  padding: 2px 6px;
+  border-radius: 0;
+  font-family: var(--display);
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  color: var(--muted);
+  text-transform: uppercase;
+}
+
+.history-list,
+.bestiary-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  border: 1px solid var(--border);
+}
+
+.history-item,
+.bestiary-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding: 6px 10px;
+  background: var(--card);
+  border: 0;
+  border-radius: 0;
+}
+
+.history-item:nth-child(even),
+.bestiary-item:nth-child(even) {
+  background: var(--card-alt);
+}
+
+.history-info,
+.bestiary-info {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.history-info strong,
+.bestiary-info strong {
+  font-family: var(--display);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+}
+
+.history-actions,
+.bestiary-actions {
+  display: flex;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.history-actions button,
+.bestiary-actions button {
+  padding: 3px 8px;
+  font-size: 10px;
+}
+
+.preset-row {
+  margin-bottom: 12px;
+}
+
+.preset-label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-family: var(--display);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.preset-select {
+  width: 100%;
+  padding: 5px 8px;
+  border: 1px solid var(--frame);
+  border-radius: 0;
+  background: var(--input-bg);
+  color: var(--ink);
+  font-family: 'Crimson Text', Georgia, serif;
+  font-size: 14px;
+  letter-spacing: normal;
+  text-transform: none;
+  cursor: pointer;
+}
+
+/* ---------------------------------------------------------------------------
+   The pain-threshold flash. Rust and ash rather than red.
+   ------------------------------------------------------------------------- */
+
 .pain-flash {
   position: fixed;
   inset: 0;
@@ -572,7 +1062,7 @@ button.ghost {
   justify-content: center;
   pointer-events: none;
   z-index: 100000;
-  background: rgba(25, 14, 9, 0.45);
+  background: rgba(20, 13, 8, 0.5);
   animation: flashFade 1.5s ease forwards;
 }
 
@@ -580,17 +1070,17 @@ button.ghost {
   position: absolute;
   width: 45vmin;
   height: 45vmin;
-  border: 4px solid rgba(180, 69, 50, 0.8);
+  border: 4px solid rgba(143, 63, 44, 0.85);
   border-radius: 50%;
   animation: flashPulse 1.5s ease-out forwards;
-  filter: drop-shadow(0 0 35px rgba(180, 69, 50, 0.7));
+  filter: drop-shadow(0 0 35px rgba(143, 63, 44, 0.7));
 }
 
 .pain-flash__ring::after {
   content: "";
   position: absolute;
   inset: -14px;
-  border: 2px dashed rgba(255, 255, 255, 0.5);
+  border: 2px dashed rgba(240, 230, 209, 0.45);
   border-radius: 50%;
   animation: flashPulse 1.5s ease-out forwards;
   animation-delay: 0.1s;
@@ -599,18 +1089,25 @@ button.ghost {
 .pain-flash__text {
   position: relative;
   text-align: center;
-  font-size: clamp(2rem, 6vw, 4.5rem);
+  font-family: var(--display);
+  font-size: clamp(2rem, 6vw, 4.2rem);
   font-weight: 700;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
-  color: #fff4e9;
-  text-shadow: 0 0 35px rgba(0, 0, 0, 0.45);
+  color: #f2e8d4;
+  text-shadow: 0 0 35px rgba(0, 0, 0, 0.5);
   animation: flashText 1.3s ease;
 }
 
 .pain-flash__text small {
   display: block;
-  font-size: clamp(1rem, 3vw, 2rem);
-  color: #ffd5c8;
+  font-family: 'Crimson Text', Georgia, serif;
+  font-style: italic;
+  font-weight: 400;
+  letter-spacing: 0.04em;
+  text-transform: none;
+  font-size: clamp(1rem, 3vw, 1.9rem);
+  color: #d9a58f;
 }
 
 @keyframes flashPulse {
@@ -631,7 +1128,20 @@ button.ghost {
   100% { opacity: 0; }
 }
 
+/* ---------------------------------------------------------------------------
+   Narrow screens.
+   ------------------------------------------------------------------------- */
+
+@media (max-width: 720px) {
+  .attr-row {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
 @media (max-width: 640px) {
+  .app-shell {
+    padding: 20px 16px 60px;
+  }
   /* Six fields across a phone-width card leaves ~40px each, which is not enough
      for a three-digit toughness. Two rows of three. */
   .stat-row.single-line {
@@ -640,160 +1150,105 @@ button.ghost {
   .compact-header {
     flex-direction: column;
   }
+  .order-buttons {
+    flex-direction: row;
+  }
   .adjust-row.inline {
     flex-direction: column;
-    align-items: flex-start;
+    align-items: stretch;
   }
   .adjust-buttons {
     width: 100%;
     justify-content: space-between;
+    margin-left: 0;
+  }
+  .masthead {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
   }
 }
 
-.stats-header {
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  gap: 12px;
-  margin-top: -4px;
+/* ---------------------------------------------------------------------------
+   Odds and ends.
+   ------------------------------------------------------------------------- */
+
+/* A panel whose heading is not in a .panel-header still gets the double rule,
+   drawn on the heading itself. */
+.panel > h2:first-child {
+  position: relative;
+  padding-bottom: 8px;
+  margin-bottom: 18px;
+  border-bottom: 3px solid var(--frame);
 }
 
-.stats-title h3 {
-  margin: 0;
-  font-size: 16px;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: var(--accent);
+.panel > h2:first-child::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -6px;
+  height: 1px;
+  background: var(--frame);
 }
 
-.stats-title p {
-  margin: 2px 0 0;
-  font-size: 12px;
-  color: var(--muted);
+/* Body copy set the way the books set it: a wider measure, a hanging bullet
+   rather than a disc. */
+.panel > ul {
+  margin: 0 0 14px;
+  padding-left: 18px;
+  max-width: 74ch;
+  list-style: none;
 }
 
-.stats-legend {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px;
+.panel > ul li {
+  position: relative;
+  margin-bottom: 6px;
 }
 
-.legend-pill {
-  border: 1px solid var(--border);
-  padding: 2px 6px;
-  border-radius: 4px;
+.panel > ul li::before {
+  content: "\2014";
+  position: absolute;
+  left: -18px;
+  color: var(--rubric);
+}
+
+.panel > p {
+  max-width: 74ch;
+}
+
+/* The round/side readout above the initiative order, set as a caption. */
+.panel-header + .muted.small {
+  margin-top: -8px;
+  font-family: var(--display);
   font-size: 10px;
-  letter-spacing: 0.08em;
-  color: var(--muted);
+  font-weight: 600;
+  letter-spacing: 0.13em;
   text-transform: uppercase;
+  color: var(--rubric);
 }
 
-.history-list {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.history-item {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 12px;
-  padding: 8px 10px;
-  background: var(--panel);
-  border: 1px solid var(--border);
-  border-radius: 4px;
-}
-
-.history-info {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.history-info strong {
-  font-size: 13px;
-}
-
-.history-actions {
-  display: flex;
-  gap: 6px;
-  flex-shrink: 0;
-}
-
-.history-actions button {
-  padding: 4px 8px;
-  font-size: 11px;
-}
-
-.monster-type-badge {
-  display: block;
-  font-size: 10px;
-  color: var(--muted);
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  padding: 1px 0 0;
-  line-height: 1.2;
-}
-
-.bestiary-list {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.bestiary-item {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 12px;
-  padding: 8px 10px;
-  background: var(--panel);
-  border: 1px solid var(--border);
-  border-radius: 4px;
-}
-
-.bestiary-info {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.bestiary-info strong {
-  font-size: 13px;
-}
-
-.bestiary-actions {
-  display: flex;
-  gap: 6px;
-  flex-shrink: 0;
-}
-
-.bestiary-actions button {
-  padding: 4px 8px;
-  font-size: 11px;
-}
-
-.preset-row {
-  margin-bottom: 10px;
-}
-
-.preset-label {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  font-size: 12px;
-  color: var(--muted);
-}
-
-.preset-select {
-  width: 100%;
-  padding: 6px 8px;
-  border: 1px solid var(--accent);
+/* Toasts, squared off and on parchment so they do not read as a web widget
+   dropped onto a printed page. */
+.Toastify__toast {
   border-radius: 0;
-  background: var(--input-bg);
+  border: 1px solid var(--frame);
+  background: var(--card);
   color: var(--ink);
-  font: inherit;
-  font-size: 13px;
-  cursor: pointer;
+  font-family: 'Crimson Text', Georgia, serif;
+  font-size: 14px;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.4);
+}
+
+.Toastify__toast-body {
+  font-family: inherit;
+}
+
+.Toastify__progress-bar {
+  background: var(--rubric);
+}
+
+.Toastify__close-button {
+  color: var(--muted);
+  opacity: 0.8;
 }

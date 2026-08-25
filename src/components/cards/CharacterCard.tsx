@@ -52,7 +52,7 @@ export function CharacterCard({ character, onUpdate, onDelete, onAttributeChange
         <label>
           {/* The number on the sheet: what this character rolls under. Monster
               statblocks print a modifier instead, and are converted on load. */}
-          <span>Defense (roll under)</span>
+          <span title="The number this character rolls under">Defense</span>
           <NumberField
             value={character.defense}
             min={1}
