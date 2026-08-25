@@ -1,0 +1,11 @@
+# The repo is now edited from WSL (ext4) and may also be read from Windows over
+# \wsl.localhost. Force LF everywhere so the two views cannot disagree and so a
+# Windows checkout can never hand CRLF to ocamlformat or dune.
+* text=auto eol=lf
+
+# Binary-ish assets: never touch.
+*.png binary
+*.jpg binary
+*.ico binary
+*.woff binary
+*.woff2 binary

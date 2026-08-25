@@ -1,0 +1,130 @@
+{
+  "version": 1,
+  "characters": [
+    {
+      "id": "pc_default_cassimei",
+      "name": "Cassimei",
+      "role": "Bard",
+      "initiative": 0,
+      "toughness": 10,
+      "defense": 8,
+      "armor": "Light (d4)",
+      "painThreshold": null,
+      "attributes": null,
+      "note": "Charming storyteller"
+    },
+    {
+      "id": "pc_default_thalia",
+      "name": "Thalia",
+      "role": "Wizard",
+      "initiative": 0,
+      "toughness": 10,
+      "defense": 3,
+      "armor": "Light (d4)",
+      "painThreshold": null,
+      "attributes": null,
+      "note": "Mystic scholar"
+    },
+    {
+      "id": "pc_default_vigoi",
+      "name": "Vigoi",
+      "role": "Warrior",
+      "initiative": 0,
+      "toughness": 10,
+      "defense": 0,
+      "armor": "Medium (d8)",
+      "painThreshold": null,
+      "attributes": null,
+      "note": "Placeholder stats"
+    },
+    {
+      "id": "pc_default_ymma",
+      "name": "Ymma",
+      "role": "Goblin",
+      "initiative": 0,
+      "toughness": 10,
+      "defense": 0,
+      "armor": "Light (d4)",
+      "painThreshold": null,
+      "attributes": null,
+      "note": "Placeholder stats"
+    }
+  ],
+  "encounter": {
+    "members": [
+      {
+        "id": "cmb_a1b2c3",
+        "source": "pc",
+        "refId": "pc_default_vigoi",
+        "name": "Vigoi",
+        "initiative": 14,
+        "toughness": 6,
+        "defense": 0,
+        "armor": "Medium (d8)",
+        "painThreshold": null,
+        "prone": false,
+        "flanked": false,
+        "attributes": null,
+        "note": ""
+      },
+      {
+        "id": "cmb_d4e5f6",
+        "source": "pc",
+        "refId": "pc_default_ymma",
+        "name": "Ymma",
+        "initiative": 11,
+        "toughness": 10,
+        "defense": 0,
+        "armor": "Light (d4)",
+        "painThreshold": null,
+        "prone": false,
+        "flanked": false,
+        "attributes": null,
+        "note": ""
+      },
+      {
+        "id": "cmb_g7h8i9",
+        "source": "npc",
+        "monsterType": "Robber",
+        "name": "Robber 1",
+        "initiative": 10,
+        "toughness": 4,
+        "defense": 4,
+        "armor": "3",
+        "painThreshold": 6,
+        "prone": true,
+        "flanked": false,
+        "note": ""
+      },
+      {
+        "id": "cmb_j1k2l3",
+        "source": "npc",
+        "monsterType": "Robber",
+        "name": "Robber 3",
+        "initiative": 10,
+        "toughness": 11,
+        "defense": 4,
+        "armor": "3",
+        "painThreshold": 6,
+        "prone": false,
+        "flanked": true,
+        "note": "picked up the fallen one's axe"
+      }
+    ],
+    "turnIndex": 2,
+    "round": 3
+  },
+  "bestiary": [
+    {
+      "id": "bst_robber",
+      "monsterType": "Robber",
+      "initiative": 10,
+      "toughness": 11,
+      "defense": 4,
+      "armor": "3",
+      "painThreshold": 6,
+      "note": "",
+      "updatedAt": 1740000000000
+    }
+  ]
+}

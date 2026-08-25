@@ -1,0 +1,60 @@
+# Kept as a description of the checks, not as a thing that runs: GitHub Actions
+# is not available on the account this repository lives under. `scripts/check.sh`
+# runs the same four commands locally and is what actually gates a commit; this
+# file is here so that enabling Actions is a settings change rather than a
+# rewrite.
+#
+# Deployment is deliberately not here. It cannot be -- Vercel has no OCaml
+# toolchain and neither does anything else that would run for free -- so the
+# bundle is built locally and published by pushing it. See
+# `scripts/deploy_vercel.sh`.
+
+name: CI
+
+on:
+  push:
+    branches: [ocaml-port]
+  pull_request:
+    branches: [ocaml-port]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: ocaml/setup-ocaml@v3
+        with:
+          ocaml-compiler: "5.2.0"
+          dune-cache: true
+
+      - name: Install dependencies
+        run: opam install . --deps-only --with-test --yes
+
+      # Four checks, in the order that makes a failure easiest to read.
+
+      - name: Formatting
+        run: opam exec -- dune build @fmt
+
+      # The one that is a claim rather than a convention: `symbaroum` is the
+      # domain core, and it has to build with no JavaScript runtime and no C
+      # stubs in scope. The CLI lives in its own package precisely so that this
+      # step keeps meaning something -- dune builds every stanza belonging to the
+      # named package, so an executable left in `symbaroum` would have made this
+      # green and vacuous.
+      - name: Core builds without any UI or Unix dependency
+        run: opam exec -- dune build -p symbaroum
+
+      - name: Tests
+        run: opam exec -- dune runtest
+
+      - name: Everything, including the web bundle
+        run: opam exec -- dune build --profile release
+
+      - name: Bundle size
+        run: |
+          raw=$(stat -c%s _build/default/web/main.bc.js)
+          gz=$(gzip -c _build/default/web/main.bc.js | wc -c)
+          echo "main.bc.js: $((raw / 1024)) KB raw, $((gz / 1024)) KB gzipped" \
+            >> "$GITHUB_STEP_SUMMARY"

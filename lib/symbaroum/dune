@@ -1,0 +1,27 @@
+; The domain core. No js_of_ocaml dependency, anywhere below this point --
+; `dune build -p symbaroum` is the CI step that keeps it that way.
+;
+; `unqualified` rather than `qualified`: the subdirectories are there so a reader
+; can see the layering, not to add a prefix to every reference. Module names stay
+; flat (`Symbaroum.Dice`, not `Symbaroum.Scalars.Dice`), which is how the modules
+; already refer to one another and how the plan's target structure names them.
+;
+; The layering runs strictly downward and is a review rule, not a compiler rule:
+;
+;   scalars/     -> depend on nothing but Core and each other
+;   aggregates/  -> scalars
+;   data/        -> scalars, aggregates
+;   transitions/ -> everything above
+;   codec/       -> everything above; the only place that parses or prints JSON
+;
+; The one boundary that *is* enforced is the package boundary: this whole
+; library must build with `-p symbaroum`, which has no UI library in scope.
+
+(include_subdirs unqualified)
+
+(library
+ (name symbaroum)
+ (public_name symbaroum)
+ (libraries core base_quickcheck splittable_random yojson)
+ (preprocess
+  (pps ppx_jane ppx_yojson_conv)))

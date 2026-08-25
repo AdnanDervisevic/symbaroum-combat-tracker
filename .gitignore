@@ -31,3 +31,13 @@ site/
 *.njsproj
 *.sln
 *.sw?
+
+# OCaml / opam / dune
+_build/
+_opam/
+*.install
+*.merlin
+
+# The built static site. Reproduced by scripts/build_site.sh and by CI; a
+# megabyte of generated JavaScript does not belong in the history.
+site/

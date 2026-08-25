@@ -1,0 +1,17 @@
+; The headless front end. This is the one place in the repo allowed to depend on
+; `core_unix`: it has C stubs and does not compile to JavaScript, which is
+; exactly why `lib/symbaroum` must never see it.
+;
+; Its own package, and that is the whole reason it has one. `dune build -p
+; symbaroum` is the CI step that proves the core carries no JavaScript-hostile
+; dependency, and dune builds every stanza belonging to the named package -- so
+; leaving this executable in `symbaroum` would have kept the command green while
+; quietly making it prove nothing. Measured, not assumed: it did.
+
+(executable
+ (name symbaroum_cli)
+ (public_name symbaroum)
+ (package symbaroum_cli)
+ (libraries core core_unix.command_unix core_unix.filename_unix symbaroum)
+ (preprocess
+  (pps ppx_jane)))
